@@ -20,6 +20,11 @@ class EmbedProperty extends UrlProperty
     protected $embedRepository;
 
     /**
+     * @var string|null $embedFormat
+     */
+    protected $embedFormat = null;
+
+    /**
      * @param Container $container A Pimple DI container.
      * @return void
      */
@@ -58,6 +63,25 @@ class EmbedProperty extends UrlProperty
     }
 
     /**
+     * @return null|string
+     */
+    public function embedFormat()
+    {
+        return $this->embedFormat;
+    }
+
+    /**
+     * @param null|string $embedFormat EmbedFormat for EmbedProperty.
+     * @return self
+     */
+    public function setEmbedFormat($embedFormat)
+    {
+        $this->embedFormat = $embedFormat;
+
+        return $this;
+    }
+
+    /**
      * @param mixed $val The value, at time of saving.
      * @return mixed
      */
@@ -65,7 +89,10 @@ class EmbedProperty extends UrlProperty
     {
         $val = parent::save($val);
 
-        $this->embedRepository()->saveEmbedData($val);
+        $this->embedRepository()->saveEmbedData(
+            (string)$this->translator()->translation($val),
+            $this->embedFormat()
+        );
 
         return $val;
     }

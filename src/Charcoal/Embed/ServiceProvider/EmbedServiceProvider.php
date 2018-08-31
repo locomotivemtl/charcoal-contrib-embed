@@ -26,7 +26,8 @@ class EmbedServiceProvider implements ServiceProviderInterface
          */
         $container['charcoal/embed/repository'] = function (Container $container) {
             return new EmbedRepository([
-                'db' => $container['database']
+                'pdo'    => $container['database'],
+                'logger' => $container['logger']
             ]);
         };
     }

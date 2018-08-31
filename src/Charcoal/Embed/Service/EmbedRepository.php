@@ -2,10 +2,13 @@
 
 namespace Charcoal\Embed\Service;
 
+use Charcoal\Embed\Mixin\EmbedAwareTrait;
 use Exception;
 use PDO;
 use PDOException;
 use Psr\Cache\CacheItemPoolInterface;
+use Psr\Log\LoggerAwareInterface;
+use Psr\Log\LoggerAwareTrait;
 use RuntimeException;
 use InvalidArgumentException;
 
@@ -14,8 +17,12 @@ use InvalidArgumentException;
  *
  * - Store scraped data from embed/embed in a provided database table.
  */
-class EmbedRepository
+class EmbedRepository implements
+    LoggerAwareInterface
 {
+    use LoggerAwareTrait;
+    use EmbedAwareTrait;
+
     const DEFAULT_TABLE = 'embed_cache';
 
     const MYSQL_DRIVER_NAME = 'mysql';
@@ -51,6 +58,7 @@ class EmbedRepository
     public function __construct(array $data)
     {
         $this->pdo = $data['pdo'];
+        $this->setLogger($data['logger']);
 
         if (isset($data['table'])) {
             $this->setTable($data['table']);
@@ -64,10 +72,11 @@ class EmbedRepository
     // ==========================================================================
 
     /**
-     * @param string $ident The embed ident to save from.
+     * @param string $ident  The embed ident to save from.
+     * @param string $format The embed format (null, src, array) @see{Charcoal\Embed\Mixin\EmbedAwareTrait}.
      * @return mixed
      */
-    public function saveEmbedData($ident)
+    public function saveEmbedData($ident, $format = null)
     {
         // Check if exist and return it
         $item = $this->load($ident);
@@ -76,21 +85,22 @@ class EmbedRepository
         }
 
         // Run through embed service.
-        $embedItem = $this->processEmbed($ident);
+        $embedItem = $this->processEmbed($ident, $format);
         $this->saveItem($embedItem);
 
         return $embedItem;
     }
 
     /**
-     * @param string $ident The embed ident to process.
+     * @param string $ident  The embed ident to process.
+     * @param string $format The embed format (null, src, array) @see{Charcoal\Embed\Mixin\EmbedAwareTrait}.
      * @return array
      */
-    public function processEmbed($ident)
+    public function processEmbed($ident, $format = null)
     {
         return [
-            'ident' => $ident,
-            'embed_data' => ''
+            'ident'      => $ident,
+            'embed_data' => $this->formatEmbed($ident, $format)
         ];
     }
 
@@ -281,11 +291,11 @@ class EmbedRepository
         $query = 'INSERT INTO %table (%keys) VALUES (%values)';
         $query = strtr($query, [
             '%table'  => $table,
-            '%keys'   => implode(', ', $item),
+            '%keys'   => implode(', ', $keys),
             '%values' => implode(', ', $values)
         ]);
 
-        $result = $this->dbQuery($query);
+        $result = $this->dbQuery($query, $binds);
 
         if ($result === false) {
             throw new PDOException('Could not save item.');
@@ -295,6 +305,85 @@ class EmbedRepository
     }
 
     /**
+     * Load item by the primary column.
+     *
+     * @param  mixed $ident Ident can be any scalar value.
+     * @throws PDOException When query fails.
+     * @return array
+     */
+    public function loadItem($ident)
+    {
+        if ($this->tableExists() === false) {
+            /** @todo Optionnally turn off for some models */
+            $this->createTable();
+        }
+
+        $table = $this->table();
+        $query = 'SELECT * FROM %table WHERE `ident` = :ident LIMIT 1';
+        $query = strtr($query, [
+            '%table' => $table
+        ]);
+
+        $binds = [
+            'ident' => $ident
+        ];
+
+        $sth = $this->dbQuery($query, $binds);
+        if ($sth === false) {
+            throw new PDOException('Could not load item.');
+        }
+
+        $data = $sth->fetch(PDO::FETCH_ASSOC);
+
+        return $data;
+    }
+
+    // /**
+    //  * Update an item (update a row) in storage.
+    //  *
+    //  * @param  array|mixed $item The object to save.
+    //  * @throws PDOException If a database error occurs.
+    //  * @return mixed The created item ID, otherwise FALSE.
+    //  */
+    // public function updateItem($item)
+    // {
+    //     if ($this->tableExists() === false) {
+    //         /** @todo Optionnally turn off for some models */
+    //         $this->createTable();
+    //     }
+    //
+    //     $table  = $this->table();
+    //     $struct = array_keys($this->tableStructure());
+    //
+    //     $keys   = [];
+    //     $values = [];
+    //     $binds  = [];
+    //
+    //     foreach ($item as $key => $value) {
+    //         if (in_array($key, $struct)) {
+    //             $keys[]      = '`'.$key.'`';
+    //             $values[]    = ':'.$key.'';
+    //             $binds[$key] = $value;
+    //         }
+    //     }
+    //     $query = 'UPDATE %table SET %updates WHERE `key = :%key`';
+    //     $query = strtr($query, [
+    //         '%table'  => $table,
+    //         '%key'  => $table,
+    //         '%keys'   => implode(', ', $keys),
+    //         '%values' => implode(', ', $values)
+    //     ]);
+    //
+    //     $result = $this->dbQuery($query, $binds);
+    //
+    //     if ($result === false) {
+    //         throw new PDOException('Could not save item.');
+    //     } else {
+    //         return $this->db()->lastInsertId();
+    //     }
+    // }
+
+    /**
      * @param string  $ident      The embed data ident to load.
      * @param boolean $useCache   If FALSE, ignore the cached object. Defaults to TRUE.
      * @param boolean $reloadData If TRUE, refresh the cached object. Defaults to FALSE.
@@ -302,11 +391,11 @@ class EmbedRepository
      */
     public function load($ident, $useCache = true, $reloadData = false)
     {
-        if (!$useCache) {
-            // return $this->loadFromSource($ident);
-        }
+        // if (!$useCache) {
+        return $this->loadItem($ident);
+        // }
 
-        // $cacheKey  = $this->cacheKey($ident);
+        $cacheKey = $this->cacheKey($ident);
         // $cacheItem = $this->cachePool->getItem($cacheKey);
         //
         // if (!$reloadData) {
@@ -333,12 +422,7 @@ class EmbedRepository
      */
     private function cacheKey($ident)
     {
-        if ($this->objKey === null) {
-            $model = $this->factory->get($this->objType);
-            $this->setObjKey($model->key());
-        }
-
-        $cacheKey = 'object/'.str_replace('/', '.', $this->objType.'.'.$this->objKey.'.'.$ident);
+        $cacheKey = 'embed/'.parse_url($ident);
 
         return $cacheKey;
     }
