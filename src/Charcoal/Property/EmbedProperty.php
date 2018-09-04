@@ -2,6 +2,7 @@
 
 namespace Charcoal\Property;
 
+use Charcoal\Embed\Mixin\EmbedRepositoryAwareTrait;
 use RuntimeException;
 
 // From 'charcoal-property'
@@ -14,15 +15,12 @@ use Pimple\Container;
  */
 class EmbedProperty extends UrlProperty
 {
-    /**
-     * @var EmbedRepository
-     */
-    protected $embedRepository;
+    use EmbedRepositoryAwareTrait;
 
     /**
      * @var string|null $embedFormat
      */
-    protected $embedFormat = null;
+    protected $embedFormat = 'array';
 
     /**
      * @param Container $container A Pimple DI container.
@@ -32,34 +30,7 @@ class EmbedProperty extends UrlProperty
     {
         parent::setDependencies($container);
 
-        $this->setEmbedRepository($container['charcoal/embed/repository']);
-    }
-
-    /**
-     * @throws RuntimeException If embed repository is missing.
-     * @return EmbedRepository
-     */
-    public function embedRepository()
-    {
-        if (!isset($this->embedRepository)) {
-            throw new RuntimeException(sprintf(
-                'embed repository is not defined for [%s]',
-                get_class($this)
-            ));
-        }
-
-        return $this->embedRepository;
-    }
-
-    /**
-     * @param EmbedRepository $embedRepository EmbedRepository for EmbedProperty.
-     * @return self
-     */
-    public function setEmbedRepository(EmbedRepository $embedRepository)
-    {
-        $this->embedRepository = $embedRepository;
-
-        return $this;
+        $this->setEmbedRepository($container['embed/repository']);
     }
 
     /**

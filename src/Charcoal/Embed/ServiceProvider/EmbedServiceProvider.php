@@ -24,7 +24,7 @@ class EmbedServiceProvider implements ServiceProviderInterface
          * @param Container $container Pimple container.
          * @return EmbedRepository
          */
-        $container['charcoal/embed/repository'] = function (Container $container) {
+        $container['embed/repository'] = function (Container $container) {
             return new EmbedRepository([
                 'pdo'    => $container['database'],
                 'logger' => $container['logger']

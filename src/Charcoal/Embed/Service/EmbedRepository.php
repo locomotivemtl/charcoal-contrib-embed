@@ -2,6 +2,7 @@
 
 namespace Charcoal\Embed\Service;
 
+use Charcoal\Embed\Contract\EmbedRepositoryInterface;
 use Charcoal\Embed\Mixin\EmbedAwareTrait;
 use Exception;
 use PDO;
@@ -18,6 +19,7 @@ use InvalidArgumentException;
  * - Store scraped data from embed/embed in a provided database table.
  */
 class EmbedRepository implements
+    EmbedRepositoryInterface,
     LoggerAwareInterface
 {
     use LoggerAwareTrait;
@@ -96,7 +98,7 @@ class EmbedRepository implements
      * @param string $format The embed format (null, src, array) @see{Charcoal\Embed\Mixin\EmbedAwareTrait}.
      * @return array
      */
-    public function processEmbed($ident, $format = null)
+    private function processEmbed($ident, $format = null)
     {
         return [
             'ident'      => $ident,
@@ -110,7 +112,7 @@ class EmbedRepository implements
      * @throws RuntimeException If the database was not set.
      * @return PDO
      */
-    public function db()
+    private function db()
     {
         if ($this->pdo === null) {
             throw new RuntimeException(
@@ -131,7 +133,7 @@ class EmbedRepository implements
      * @param  array  $types Optional. Types of parameter bindings.
      * @return \PDOStatement|false The PDOStatement, otherwise FALSE.
      */
-    public function dbQuery($query, array $binds = [], array $types = [])
+    private function dbQuery($query, array $binds = [], array $types = [])
     {
         $this->logger->debug($query, $binds);
         $sth = $this->db()->prepare($query);
@@ -165,7 +167,7 @@ class EmbedRepository implements
      *
      * @return boolean TRUE if the table was created, otherwise FALSE.
      */
-    public function createTable()
+    private function createTable()
     {
         if ($this->tableExists() === true) {
             return true;
@@ -203,7 +205,7 @@ class EmbedRepository implements
      *
      * @return boolean TRUE if the table exists, otherwise FALSE.
      */
-    public function tableExists()
+    private function tableExists()
     {
         $dbh    = $this->db();
         $table  = $this->table();
@@ -226,7 +228,7 @@ class EmbedRepository implements
      *
      * @return array An associative array.
      */
-    public function tableStructure()
+    private function tableStructure()
     {
         $dbh    = $this->db();
         $table  = $this->table();
@@ -267,7 +269,7 @@ class EmbedRepository implements
      * @throws PDOException If a database error occurs.
      * @return mixed The created item ID, otherwise FALSE.
      */
-    public function saveItem($item)
+    private function saveItem($item)
     {
         if ($this->tableExists() === false) {
             /** @todo Optionnally turn off for some models */
@@ -311,7 +313,7 @@ class EmbedRepository implements
      * @throws PDOException When query fails.
      * @return array
      */
-    public function loadItem($ident)
+    private function loadItem($ident)
     {
         if ($this->tableExists() === false) {
             /** @todo Optionnally turn off for some models */
@@ -382,6 +384,22 @@ class EmbedRepository implements
     //         return $this->db()->lastInsertId();
     //     }
     // }
+
+    /**
+     * @param string $ident The embed url to load data from.
+     * @return boolean|mixed
+     */
+    public function embedData($ident)
+    {
+        $item = $this->load($ident);
+
+        if (isset($item['embed_data'])) {
+            $data = json_decode($item['embed_data'], true);
+            return $data;
+        }
+
+        return false;
+    }
 
     /**
      * @param string  $ident      The embed data ident to load.
