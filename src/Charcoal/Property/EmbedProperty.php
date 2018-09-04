@@ -2,7 +2,7 @@
 
 namespace Charcoal\Property;
 
-use Charcoal\Embed\Mixin\EmbedRepositoryAwareTrait;
+use Charcoal\Embed\Mixin\EmbedRepositoryTrait;
 use RuntimeException;
 
 // From 'charcoal-property'
@@ -15,7 +15,7 @@ use Pimple\Container;
  */
 class EmbedProperty extends UrlProperty
 {
-    use EmbedRepositoryAwareTrait;
+    use EmbedRepositoryTrait;
 
     /**
      * @var string|null $embedFormat

@@ -11,7 +11,7 @@ use Charcoal\Embed\Contract\EmbedRepositoryInterface;
  * Trait EmbedRepositoryAwareTrait
  * @package Charcoal\Embed\Mixin
  */
-trait EmbedRepositoryAwareTrait
+trait EmbedRepositoryTrait
 {
     /**
      * @var EmbedRepositoryInterface
