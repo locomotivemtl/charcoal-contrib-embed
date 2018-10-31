@@ -500,7 +500,7 @@ class EmbedRepository extends AbstractEntity implements
             // timeout is there to force the request not to wait for a response.
             $client = new Client([
                 'base_uri'    => $this->baseUrl,
-                'timeout'     => 0.1,
+                'timeout'     => 0.0001,
                 'synchronous' => false,
                 'verify'      => false
             ]);
