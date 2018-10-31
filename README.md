@@ -45,39 +45,90 @@ $ composer require locomotivemtl/charcoal-contrib-embed
 
 -   [**PHP 5.6+**](https://php.net): _PHP 7_ is recommended.
 -   **[charcoal-property]** : ^0.7
+-   **[guzzle]** : ~0.6
 -   **[embed]** : ^3.3
-
-#### PSR
-
---TBD--
-
 
 
 ## Service Provider
 
 The following services are provided with the use of [charcoal-contrib-embed]
 
-### Parameters
-
---TBD--
-
-
-
 ### Services
 
-
+- **embed/repository** instance of `Embed\EmbedRepository`
+    - **Charcoal\Embed\Mixin\EmbedRepositoryTrait** provided for ease of use.
 
 ## Configuration
 
---TBD--
+Include the embed module in the projects's config file.
+This will provide everything needed for [charcoal-contrib-embed] to work properly.
+No need for metadata/views/action/routes path etc.
 
+```Json
+{
+    "modules": {
+       "charcoal/embed/embed": {}
+    }
+}
+```
 
+You can provide additional configurations in the project's config file like so : 
+
+```json
+{
+    "embed_config": {
+        "ttl": 3600,
+        "format": "array",
+        "table": "embed_cache"
+    }
+}
+```
+
+This is the actual default config.
 
 ## Usage
 
---TBD--
+The Embed Contrib provides a custom Property type : "embed".
+When using it, the property will fetch embed data from media providers and store them in a third table.
 
+```json
+{
+    "video": {
+        "type": "embed",
+        "l10n": true,
+        "label": {
+            "en": "Video",
+            "fr": "Video"
+        },
+        "notes": "Full video url. ex.: https://www.youtube.com/watch?v=_VIDEO_ID"
+    }
+}
+```
 
+To load the embed data from database, use **EmbedRepository** service method
+
+```php
+$this->embedRepository()
+     ->embedData('https://youtube.com/someid');
+```
+
+Dependency injection  :
+
+```php
+use EmbedRepositoryTrait;
+
+/**
+ * Inject dependencies from a DI Container.
+ *
+ * @param  Container $container A dependencies container instance.
+ * @return void
+ */
+protected function setDependencies(Container $container)
+{
+    parent::setDependencies($container);
+    $this->setEmbedRepository($container['embed/repository']);
+}
+```
 
 ## Development
 
@@ -140,6 +191,7 @@ Charcoal is licensed under the MIT license. See [LICENSE](LICENSE) for details.
 
 [charcoal-contrib-embed]:  https://packagist.org/packages/locomotivemtl/charcoal-contrib-embed
 [charcoal-property]:       https://packagist.org/packages/locomotivemtl/charcoal-property
+[guzzle]:                  https://packagist.org/packages/guzzlehttp/guzzle
 [embed]:                   https://packagist.org/packages/embed/embed
 [charcoal-app]:            https://packagist.org/packages/locomotivemtl/charcoal-app
 
