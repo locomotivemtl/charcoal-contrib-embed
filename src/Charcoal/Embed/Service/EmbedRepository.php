@@ -488,8 +488,6 @@ class EmbedRepository extends AbstractEntity implements
      */
     private function validateTtl(array $item)
     {
-        error_log(var_export($this->ttl(), true));
-
         try {
             $ttl = new \DateInterval(sprintf('PT%sS', $this->ttl()));
         } catch (Exception $e) {
@@ -498,7 +496,7 @@ class EmbedRepository extends AbstractEntity implements
         $now        = new \DateTime();
         $lastUpdate = new \DateTime($item['last_update_date']);
 
-        if ($lastUpdate->add($ttl) < $now) {
+        if ($lastUpdate->add($ttl) < $now || $item['last_update_date'] === null) {
             // timeout is there to force the request not to wait for a response.
             $client = new Client([
                 'base_uri'    => $this->baseUrl,
