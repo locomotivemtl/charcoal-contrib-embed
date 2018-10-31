@@ -502,7 +502,7 @@ class EmbedRepository extends AbstractEntity implements
                 'base_uri'    => $this->baseUrl,
                 'timeout'     => 0.0001,
                 'synchronous' => false,
-                'verify'      => false
+                'verify'      => true
             ]);
 
             $promises = [
