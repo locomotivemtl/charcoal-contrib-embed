@@ -1,0 +1,13 @@
+{
+    "admin": {
+        "routes": {
+            "actions": {
+                "embed/update": {
+                    "route": "/embed/update",
+                    "controller": "charcoal/embed/action/update-embed-data",
+                    "methods": [ "POST" ]
+                }
+            }
+        }
+    }
+}

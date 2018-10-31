@@ -5,6 +5,9 @@ namespace Charcoal\Embed\Service;
 use Charcoal\Embed\Contract\EmbedRepositoryInterface;
 use Charcoal\Embed\Mixin\EmbedAwareTrait;
 use Exception;
+use GuzzleHttp\Client;
+use function GuzzleHttp\Promise\unwrap;
+use GuzzleHttp\Psr7\Request;
 use PDO;
 use PDOException;
 use Psr\Cache\CacheItemPoolInterface;
@@ -43,11 +46,21 @@ class EmbedRepository implements
     private $pdo;
 
     /**
+     * @var mixed
+     */
+    private $baseUrl;
+
+    /**
      * The PSR-6 caching service.
      *
      * @var CacheItemPoolInterface
      */
     private $cachePool;
+
+    /**
+     * @var integer $ttl
+     */
+    private $ttl = 3600;
 
     // INIT
     // ==========================================================================
@@ -59,7 +72,8 @@ class EmbedRepository implements
      */
     public function __construct(array $data)
     {
-        $this->pdo = $data['pdo'];
+        $this->pdo     = $data['pdo'];
+        $this->baseUrl = $data['base-url'];
         $this->setLogger($data['logger']);
 
         if (isset($data['table'])) {
@@ -80,15 +94,17 @@ class EmbedRepository implements
      */
     public function saveEmbedData($ident, $format = null)
     {
-        // Check if exist and return it
+        // Check if exist to know if we have to save or update.
         $item = $this->load($ident);
-        if ($item) {
-            return $item;
-        }
 
         // Run through embed service.
         $embedItem = $this->processEmbed($ident, $format);
-        $this->saveItem($embedItem);
+
+        if ($item) {
+            $this->updateItem($embedItem);
+        } else {
+            $this->saveItem($embedItem);
+        }
 
         return $embedItem;
     }
@@ -101,8 +117,9 @@ class EmbedRepository implements
     private function processEmbed($ident, $format = null)
     {
         return [
-            'ident'      => $ident,
-            'embed_data' => $this->formatEmbed($ident, $format)
+            'ident'            => $ident,
+            'embed_data'       => $this->formatEmbed($ident, $format),
+            'last_update_date' => (new \DateTime())->format('Y-m-d H:i:s')
         ];
     }
 
@@ -181,6 +198,7 @@ class EmbedRepository implements
         $query = 'CREATE TABLE %table (
                         `ident` varchar(255) NOT NULL DEFAULT \'\',
                         `embed_data` text,
+                        `last_update_date` datetime,
                         PRIMARY KEY (`ident`)
                     ) %engine';
 
@@ -340,50 +358,46 @@ class EmbedRepository implements
         return $data;
     }
 
-    // /**
-    //  * Update an item (update a row) in storage.
-    //  *
-    //  * @param  array|mixed $item The object to save.
-    //  * @throws PDOException If a database error occurs.
-    //  * @return mixed The created item ID, otherwise FALSE.
-    //  */
-    // public function updateItem($item)
-    // {
-    //     if ($this->tableExists() === false) {
-    //         /** @todo Optionnally turn off for some models */
-    //         $this->createTable();
-    //     }
-    //
-    //     $table  = $this->table();
-    //     $struct = array_keys($this->tableStructure());
-    //
-    //     $keys   = [];
-    //     $values = [];
-    //     $binds  = [];
-    //
-    //     foreach ($item as $key => $value) {
-    //         if (in_array($key, $struct)) {
-    //             $keys[]      = '`'.$key.'`';
-    //             $values[]    = ':'.$key.'';
-    //             $binds[$key] = $value;
-    //         }
-    //     }
-    //     $query = 'UPDATE %table SET %updates WHERE `key = :%key`';
-    //     $query = strtr($query, [
-    //         '%table'  => $table,
-    //         '%key'  => $table,
-    //         '%keys'   => implode(', ', $keys),
-    //         '%values' => implode(', ', $values)
-    //     ]);
-    //
-    //     $result = $this->dbQuery($query, $binds);
-    //
-    //     if ($result === false) {
-    //         throw new PDOException('Could not save item.');
-    //     } else {
-    //         return $this->db()->lastInsertId();
-    //     }
-    // }
+    /**
+     * Update an item (update a row) in storage.
+     *
+     * @param  array|mixed $item The object to save.
+     * @throws PDOException If a database error occurs.
+     * @return mixed The created item ID, otherwise FALSE.
+     */
+    public function updateItem($item)
+    {
+        if ($this->tableExists() === false) {
+            /** @todo Optionnally turn off for some models */
+            $this->createTable();
+        }
+
+        $table  = $this->table();
+        $struct = array_keys($this->tableStructure());
+
+        $updates   = [];
+        $binds  = [];
+
+        foreach ($item as $key => $value) {
+            if (in_array($key, $struct)) {
+                $updates[] = '`'.$key.'`=:'.$key.'';
+                $binds[$key] = $value;
+            }
+        }
+        $query = 'UPDATE %table SET %updates WHERE `ident` = :ident';
+        $query = strtr($query, [
+            '%table'  => $table,
+            '%updates'   => implode(', ', $updates)
+        ]);
+
+        $result = $this->dbQuery($query, $binds);
+
+        if ($result === false) {
+            throw new PDOException('Could not update item.');
+        } else {
+            return $this->db()->lastInsertId();
+        }
+    }
 
     /**
      * @param string $ident The embed url to load data from.
@@ -395,6 +409,9 @@ class EmbedRepository implements
 
         if (isset($item['embed_data'])) {
             $data = json_decode($item['embed_data'], true);
+
+            $this->validateTtl($item);
+
             return $data;
         }
 
@@ -445,7 +462,48 @@ class EmbedRepository implements
         return $cacheKey;
     }
 
+    /**
+     * @param array $item The embed item.
+     * @return void
+     */
+    private function validateTtl(array $item)
+    {
+        try {
+            $ttl = new \DateInterval(sprintf('PT%sS', $this->ttl()));
+        } catch (Exception $e) {
+            $this->logger->error($e->getMessage());
+        }
+        $now        = new \DateTime();
+        $lastUpdate = new \DateTime($item['last_update_date']);
 
+        if ($lastUpdate->add($ttl) < $now) {
+            // timeout is there to force the request not to wait for a response.
+            $client = new Client([
+                'base_uri'    => $this->baseUrl,
+                'timeout'     => 0.1,
+                'synchronous' => false,
+                'verify'      => false
+            ]);
+
+            $promises = [
+                $client->postAsync('/admin/embed/update', [
+                    'json' => [
+                        'ident' => $item['ident']
+                    ]
+                ])
+            ];
+
+            // prevent multiple calls to embed/update by updating update_date right now.
+            $item['last_update_date'] = (new \DateTime())->format('Y-m-d H:i:s');
+            $this->updateItem($item);
+
+            try {
+                unwrap($promises);
+            } catch (\Throwable $e) {
+                $this->logger->error($e->getMessage());
+            }
+        }
+    }
 
     // Magic Methods
     // =============================================================================================
@@ -532,5 +590,24 @@ class EmbedRepository implements
     public function hasTable()
     {
         return !empty($this->table);
+    }
+
+    /**
+     * @return integer
+     */
+    public function ttl()
+    {
+        return $this->ttl;
+    }
+
+    /**
+     * @param integer $ttl Ttl for EmbedRepository.
+     * @return self
+     */
+    public function setTtl($ttl)
+    {
+        $this->ttl = $ttl;
+
+        return $this;
     }
 }
