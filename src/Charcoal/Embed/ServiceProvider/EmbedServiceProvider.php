@@ -26,9 +26,11 @@ class EmbedServiceProvider implements ServiceProviderInterface
          */
         $container['embed/repository'] = function (Container $container) {
             return new EmbedRepository([
-                'pdo'      => $container['database'],
-                'base-url' => $container['base-url'],
-                'logger'   => $container['logger']
+                'pdo'           => $container['database'],
+                'base-url'      => $container['base-url'],
+                'logger'        => $container['logger'],
+
+                'embed_config' => $container['config']->get('embed_config')
             ]);
         };
     }

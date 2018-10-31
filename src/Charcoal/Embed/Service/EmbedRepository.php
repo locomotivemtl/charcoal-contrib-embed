@@ -2,26 +2,34 @@
 
 namespace Charcoal\Embed\Service;
 
-use Charcoal\Embed\Contract\EmbedRepositoryInterface;
-use Charcoal\Embed\Mixin\EmbedAwareTrait;
-use Exception;
-use GuzzleHttp\Client;
-use function GuzzleHttp\Promise\unwrap;
-use GuzzleHttp\Psr7\Request;
-use PDO;
-use PDOException;
+// from 'charcoal-config'
+use Charcoal\Config\AbstractEntity;
+
+// frpm Psr
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
+
 use RuntimeException;
 use InvalidArgumentException;
+use Exception;
+use PDOException;
+use PDO;
+
+// from 'guzzlehttp/guzzle'
+use GuzzleHttp\Client;
+use function GuzzleHttp\Promise\unwrap;
+
+// local
+use Charcoal\Embed\Contract\EmbedRepositoryInterface;
+use Charcoal\Embed\Mixin\EmbedAwareTrait;
 
 /**
  * Embed Repository
  *
  * - Store scraped data from embed/embed in a provided database table.
  */
-class EmbedRepository implements
+class EmbedRepository extends AbstractEntity implements
     EmbedRepositoryInterface,
     LoggerAwareInterface
 {
@@ -62,6 +70,18 @@ class EmbedRepository implements
      */
     private $ttl = 3600;
 
+    /**
+     * Embed data format.
+     *
+     * Choices:
+     *  - array
+     *  - src
+     *  - NULL
+     *
+     * @var string
+     */
+    private $format;
+
     // INIT
     // ==========================================================================
 
@@ -76,13 +96,13 @@ class EmbedRepository implements
         $this->baseUrl = $data['base-url'];
         $this->setLogger($data['logger']);
 
-        if (isset($data['table'])) {
-            $this->setTable($data['table']);
+        $config = $data['embed_config'];
+        if ($config && is_array($config)) {
+            $this->setData($config);
         }
 
         return $this;
     }
-
 
     // Methods
     // ==========================================================================
@@ -375,19 +395,19 @@ class EmbedRepository implements
         $table  = $this->table();
         $struct = array_keys($this->tableStructure());
 
-        $updates   = [];
-        $binds  = [];
+        $updates = [];
+        $binds   = [];
 
         foreach ($item as $key => $value) {
             if (in_array($key, $struct)) {
-                $updates[] = '`'.$key.'`=:'.$key.'';
+                $updates[]   = '`'.$key.'`=:'.$key.'';
                 $binds[$key] = $value;
             }
         }
         $query = 'UPDATE %table SET %updates WHERE `ident` = :ident';
         $query = strtr($query, [
-            '%table'  => $table,
-            '%updates'   => implode(', ', $updates)
+            '%table'   => $table,
+            '%updates' => implode(', ', $updates)
         ]);
 
         $result = $this->dbQuery($query, $binds);
@@ -468,6 +488,8 @@ class EmbedRepository implements
      */
     private function validateTtl(array $item)
     {
+        error_log(var_export($this->ttl(), true));
+
         try {
             $ttl = new \DateInterval(sprintf('PT%sS', $this->ttl()));
         } catch (Exception $e) {
@@ -607,6 +629,30 @@ class EmbedRepository implements
     public function setTtl($ttl)
     {
         $this->ttl = $ttl;
+
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function format()
+    {
+        return $this->format;
+    }
+
+    /**
+     * @param string $format Format for EmbedRepository.
+     * @return self
+     */
+    public function setFormat($format)
+    {
+        switch ($format) {
+            case 'array':
+            case 'src':
+                $this->format = $format;
+                break;
+        }
 
         return $this;
     }
