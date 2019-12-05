@@ -2,13 +2,20 @@
 
 namespace Charcoal\Property;
 
-use Charcoal\Embed\Mixin\EmbedRepositoryTrait;
 use RuntimeException;
 
-// From 'charcoal-property'
-use Charcoal\Embed\Service\EmbedRepository;
-use Charcoal\Property\UrlProperty;
+// From Pimple
 use Pimple\Container;
+
+// From 'charcoal-translator'
+use Charcoal\Translator\Translation;
+
+// From 'charcoal-property'
+use Charcoal\Property\UrlProperty;
+
+// From 'charcoal-contrib-embed'
+use Charcoal\Embed\Mixin\EmbedRepositoryTrait;
+use Charcoal\Embed\Service\EmbedRepository;
 
 /**
  * Class EmbedProperty
@@ -60,10 +67,17 @@ class EmbedProperty extends UrlProperty
     {
         $val = parent::save($val);
 
-        $this->embedRepository()->saveEmbedData(
-            (string)$this->translator()->translation($val),
-            $this->embedFormat()
-        );
+        if ($val instanceof Translation) {
+            foreach ($val->data() as $lang => $value) {
+                if (!empty($value)) {
+                    $this->embedRepository()->saveEmbedData($value, $this->embedFormat());
+                }
+            }
+        } else {
+            if (!empty($val)) {
+                $this->embedRepository()->saveEmbedData($val, $this->embedFormat());
+            }
+        }
 
         return $val;
     }
