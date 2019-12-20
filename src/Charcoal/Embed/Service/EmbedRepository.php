@@ -186,7 +186,7 @@ class EmbedRepository extends AbstractEntity implements
                     $binds[$key] = json_encode($binds[$key]);
                 }
                 $type  = (isset($types[$key]) ? $types[$key] : PDO::PARAM_STR);
-                $param = ':'.$key;
+                $param = ':' . $key;
                 $sth->bindParam($param, $binds[$key], $type);
             }
         }
@@ -323,8 +323,8 @@ class EmbedRepository extends AbstractEntity implements
 
         foreach ($item as $key => $value) {
             if (in_array($key, $struct)) {
-                $keys[]      = '`'.$key.'`';
-                $values[]    = ':'.$key.'';
+                $keys[]      = '`' . $key . '`';
+                $values[]    = ':' . $key . '';
                 $binds[$key] = $value;
             }
         }
@@ -400,7 +400,7 @@ class EmbedRepository extends AbstractEntity implements
 
         foreach ($item as $key => $value) {
             if (in_array($key, $struct)) {
-                $updates[]   = '`'.$key.'`=:'.$key.'';
+                $updates[]   = '`' . $key . '`=:' . $key . '';
                 $binds[$key] = $value;
             }
         }
@@ -477,7 +477,7 @@ class EmbedRepository extends AbstractEntity implements
      */
     private function cacheKey($ident)
     {
-        $cacheKey = 'embed/'.parse_url($ident);
+        $cacheKey = 'embed/' . parse_url($ident);
 
         return $cacheKey;
     }

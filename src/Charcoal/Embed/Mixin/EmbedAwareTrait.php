@@ -85,7 +85,7 @@ trait EmbedAwareTrait
                         // However, the last image image is some kind of tracking pixel.
                         $images = array_slice($images, 0, -1);
                         $image = array_pop($images)['url'];
-                    } else if ($provider === 'vimeo') {
+                    } elseif ($provider === 'vimeo') {
                         // Vimeo sticks an overlay on their best quality image. Find the width, and replace it on the
                         // smaller image (without an overlay).
                         $smallImage = $images[0];
@@ -93,7 +93,7 @@ trait EmbedAwareTrait
 
                         if ($largeImage) {
                             $image = preg_replace(
-                                "/_(\d+)?(x)?(\d+)?\.[\w-]+$/",
+                                '/_(\d+)?(x)?(\d+)?\.[\w-]+$/',
                                 sprintf(
                                     '_%sx%s.jpg',
                                     $largeImage['width'],
@@ -113,9 +113,7 @@ trait EmbedAwareTrait
                     $regExp = '/^.*(vimeo\.com\/)((channels\/[A-z]+\/)|(groups\/[A-z]+\/videos\/))?([0-9]+)/';
                     preg_match($regExp, $link, $match);
                     $id = $match ? $match[5] : false;
-
                 }
-
                 $embed = [
                     'iframe'   => $iframe,
                     'src'      => $src,
@@ -123,7 +121,7 @@ trait EmbedAwareTrait
                     'provider' => $provider,
                     'id'       => $id
                 ];
-            } else if ($format === 'src') {
+            } elseif ($format === 'src') {
                 $embed = $src;
             } else {
                 $embed = preg_replace('~\s*(width|height)=["\'][^"\']+["\']~', '', $embed->code);
