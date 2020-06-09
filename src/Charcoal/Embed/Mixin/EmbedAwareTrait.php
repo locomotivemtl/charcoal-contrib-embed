@@ -64,13 +64,17 @@ trait EmbedAwareTrait
         if ($url) {
             $embed = Embed::create($url);
             $provider = strtolower($embed->providerName);
+            $replace  = '~\s*(width|height)=["\'][^"\']+["\']~';
 
             // Extract the iframe markup.
-            $iframe = preg_replace('~\s*(width|height)=["\'][^"\']+["\']~', '', $embed->code);
+            $iframe = preg_replace($replace, '', $embed->code);
+
+            // Extract the embed code.
+            $embedCode = str_replace('&', '&amp;', $embed->code);
 
             // Extract the `src` attribute from embedable iframe.
             $doc = new \DOMDocument();
-            $doc->loadHTML($embed->code);
+            $doc->loadHTML($embedCode);
             $src = $doc->getElementsByTagName('iframe')->item(0)->getAttribute('src');
 
             if ($format === 'array') {
@@ -126,7 +130,7 @@ trait EmbedAwareTrait
             } else if ($format === 'src') {
                 $embed = $src;
             } else {
-                $embed = preg_replace('~\s*(width|height)=["\'][^"\']+["\']~', '', $embed->code);
+                $embed = preg_replace($replace, '', $embedCode);
             }
         } else {
             $embed = '';
