@@ -65,89 +65,91 @@ trait EmbedAwareTrait
     /**
      * Resolve the format of an embedable resource.
      *
-     * @param  string      $link   The link to the embedable resource.
+     * @param  string      $url    The URL to the embedable resource.
      * @param  string|null $format The format in which to return the embed. Defaults to 'iframe'.
-     * @return Embed|string        Returns markup or the source for embedding the linked resource.
+     * @return array|string|null Returns a string of HTML or the URL of the source object.
      */
-    private function resolveEmbedFormat($link, $format)
+    private function resolveEmbedFormat($url, $format = null)
     {
-        $url = $link;
-
-        if ($url) {
-            $embed = Embed::create($url);
-            $provider = strtolower($embed->providerName);
-            $replace  = '~\s*(width|height)=["\'][^"\']+["\']~';
-
-            // Extract the iframe markup.
-            $iframe = preg_replace($replace, '', $embed->code);
-
-            // Extract the embed code.
-            $embedCode = str_replace('&', '&amp;', $embed->code);
-
-            // Extract the `src` attribute from embedable iframe.
-            $doc = new \DOMDocument();
-            $doc->loadHTML($embedCode);
-            $src = $doc->getElementsByTagName('iframe')->item(0)->getAttribute('src');
-
-            if ($format === 'array') {
-                // Extract an image preview from embedable iframe.
-                // Defaults to the image extracted by the Embed object.
-                $images = $embed->images;
-                $image  = $embed->image;
-
-                if (count($images) > 1) {
-                    if ($provider === 'youtube') {
-                        // The largest image available for YouTube will be near the end of the images array.
-                        // However, the last image image is some kind of tracking pixel.
-                        $images = array_slice($images, 0, -1);
-                        $image = array_pop($images)['url'];
-                    } else if ($provider === 'vimeo') {
-                        // Vimeo sticks an overlay on their best quality image. Find the width, and replace it on the
-                        // smaller image (without an overlay).
-                        $smallImage = $images[0];
-                        $largeImage = array_pop($images);
-
-                        if ($largeImage) {
-                            $image = preg_replace(
-                                "/_(\d+)?(x)?(\d+)?\.[\w-]+$/",
-                                sprintf(
-                                    '_%sx%s.jpg',
-                                    $largeImage['width'],
-                                    $largeImage['height']
-                                ),
-                                $smallImage['url']
-                            );
-                        }
-                    }
-                }
-
-                if ($provider === 'youtube') {
-                    $regExp = '/^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#\&\?]*).*/';
-                    preg_match($regExp, $link, $match);
-                    $id = ($match && strlen($match[7]) === 11) ? $match[7] : false;
-                } else {
-                    $regExp = '/^.*(vimeo\.com\/)((channels\/[A-z]+\/)|(groups\/[A-z]+\/videos\/))?([0-9]+)/';
-                    preg_match($regExp, $link, $match);
-                    $id = $match ? $match[5] : false;
-
-                }
-
-                $embed = [
-                    'iframe'   => $iframe,
-                    'src'      => $src,
-                    'image'    => $image,
-                    'provider' => $provider,
-                    'id'       => $id
-                ];
-            } else if ($format === 'src') {
-                $embed = $src;
-            } else {
-                $embed = preg_replace($replace, '', $embedCode);
-            }
-        } else {
-            $embed = '';
+        if (is_string($url)) {
+            $url = trim($url);
         }
 
-        return $embed;
+        if (!$url) {
+            return null;
+        }
+
+        $embed = Embed::create($url);
+        $provider = strtolower($embed->providerName);
+        $replace  = '~\s*(width|height)=["\'][^"\']+["\']~';
+
+        // Extract the iframe markup.
+        $iframe = preg_replace($replace, '', $embed->code);
+
+        // Extract the embed code.
+        $embedCode = str_replace('&', '&amp;', $embed->code);
+
+        // Extract the `src` attribute from embedable iframe.
+        $doc = new \DOMDocument();
+        $doc->loadHTML($embedCode);
+        $src = $doc->getElementsByTagName('iframe')->item(0)->getAttribute('src');
+
+        if ($format === 'array') {
+            // Extract an image preview from embedable iframe.
+            // Defaults to the image extracted by the Embed object.
+            $images = $embed->images;
+            $image  = $embed->image;
+
+            if (count($images) > 1) {
+                if ($provider === 'youtube') {
+                    // The largest image available for YouTube will be near the end of the images array.
+                    // However, the last image image is some kind of tracking pixel.
+                    $images = array_slice($images, 0, -1);
+                    $image = array_pop($images)['url'];
+                } else if ($provider === 'vimeo') {
+                    // Vimeo sticks an overlay on their best quality image. Find the width, and replace it on the
+                    // smaller image (without an overlay).
+                    $smallImage = $images[0];
+                    $largeImage = array_pop($images);
+
+                    if ($largeImage) {
+                        $image = preg_replace(
+                            "/_(\d+)?(x)?(\d+)?\.[\w-]+$/",
+                            sprintf(
+                                '_%sx%s.jpg',
+                                $largeImage['width'],
+                                $largeImage['height']
+                            ),
+                            $smallImage['url']
+                        );
+                    }
+                }
+            }
+
+            if ($provider === 'youtube') {
+                $regExp = '/^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#\&\?]*).*/';
+                preg_match($regExp, $url, $match);
+                $id = ($match && strlen($match[7]) === 11) ? $match[7] : false;
+            } else {
+                $regExp = '/^.*(vimeo\.com\/)((channels\/[A-z]+\/)|(groups\/[A-z]+\/videos\/))?([0-9]+)/';
+                preg_match($regExp, $url, $match);
+                $id = $match ? $match[5] : false;
+
+            }
+
+            return [
+                'iframe'   => $iframe,
+                'src'      => $src,
+                'image'    => $image,
+                'provider' => $provider,
+                'id'       => $id
+            ];
+        }
+
+        if ($format === 'src') {
+            return $src;
+        }
+
+        return preg_replace($replace, '', $embedCode);
     }
 }
