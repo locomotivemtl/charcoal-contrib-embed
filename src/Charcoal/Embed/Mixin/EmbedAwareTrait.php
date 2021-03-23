@@ -2,6 +2,8 @@
 
 namespace Charcoal\Embed\Mixin;
 
+use Exception;
+
 // From 'embed/embed'
 use Embed\Embed;
 
@@ -33,18 +35,28 @@ trait EmbedAwareTrait
             return $value;
         }
 
-        $value = trim($value);
-
         if ($value instanceof Translation) {
             foreach ($value->data() as $lang => $trans) {
-                $value[$lang] = $this->resolveEmbedFormat($trans, $format);
+                try {
+                    $value[$lang] = (string)$this->resolveEmbedFormat($trans, $format);
+                } catch (Exception $e) {
+                    $value[$lang] = null;
+                }
             }
         } elseif (is_array($value)) {
             foreach ($value as $k => $v) {
-                $value[$k] = $this->resolveEmbedFormat($value[$k], $format);
+                try {
+                    $value[$k] = $this->resolveEmbedFormat($value[$k], $format);
+                } catch (Exception $e) {
+                    $value[$k] = null;
+                }
             }
         } else {
-            $value = $this->resolveEmbedFormat($value, $format);
+            try {
+                $value = $this->resolveEmbedFormat($value, $format);
+            } catch (Exception $e) {
+                $value = null;
+            }
         }
 
         return $value;
