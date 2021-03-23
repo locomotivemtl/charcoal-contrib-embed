@@ -29,8 +29,7 @@ class EmbedServiceProvider implements ServiceProviderInterface
                 'pdo'           => $container['database'],
                 'base-url'      => $container['base-url'],
                 'logger'        => $container['logger'],
-
-                'embed_config' => $container['config']->get('embed_config')
+                'embed_config'  => $container['config']->get('embed_config'),
             ]);
         };
     }

@@ -425,6 +425,10 @@ class EmbedRepository extends AbstractEntity implements
      */
     public function embedData($ident)
     {
+        if ($ident === '') {
+            return false;
+        }
+
         $item = $this->load($ident);
 
         if (isset($item['embed_data'])) {
@@ -450,7 +454,7 @@ class EmbedRepository extends AbstractEntity implements
         return $this->loadItem($ident);
         // }
 
-        $cacheKey = $this->cacheKey($ident);
+        // $cacheKey = $this->cacheKey($ident);
         // $cacheItem = $this->cachePool->getItem($cacheKey);
         //
         // if (!$reloadData) {
@@ -466,7 +470,7 @@ class EmbedRepository extends AbstractEntity implements
         // $cacheItem->set($data);
         // $this->cachePool->save($cacheItem);
 
-        return [];
+        // return [];
     }
 
     /**
