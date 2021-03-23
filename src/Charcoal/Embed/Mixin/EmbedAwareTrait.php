@@ -80,21 +80,37 @@ trait EmbedAwareTrait
         }
 
         $embed = Embed::create($url);
-        $provider = strtolower($embed->providerName);
-        $replace  = '~\s*(width|height)=["\'][^"\']+["\']~';
 
-        // Extract the iframe markup.
-        $iframe = preg_replace($replace, '', $embed->code);
+        if (empty($embed->code)) {
+            return null;
+        }
 
-        // Extract the embed code.
-        $embedCode = str_replace('&', '&amp;', $embed->code);
+        // Strip width/height from iframe.
+        $iframe = preg_replace('~\s*(width|height)=["\'][^"\']+["\']~', '', $embed->code);
+
+        // Fix unencoded ampersands
+        $iframe = preg_replace('~&(?!amp;)~i', '&amp;', $iframe);
 
         // Extract the `src` attribute from embedable iframe.
+        $src = null;
         $doc = new \DOMDocument();
-        $doc->loadHTML($embedCode);
-        $src = $doc->getElementsByTagName('iframe')->item(0)->getAttribute('src');
+        if ($doc->loadHTML($iframe)) {
+            $elems = $doc->getElementsByTagName('iframe');
+            if ($elems->length > 0) {
+                $elem = $elems->item(0);
+                if ($elem->hasAttribute('src')) {
+                    $src = $elem->getAttribute('src');
+                }
+            }
+        }
+
+        if ($format === 'src') {
+            return $src;
+        }
 
         if ($format === 'array') {
+            $provider = strtolower($embed->providerName);
+
             // Extract an image preview from embedable iframe.
             // Defaults to the image extracted by the Embed object.
             $images = $embed->images;
@@ -105,8 +121,8 @@ trait EmbedAwareTrait
                     // The largest image available for YouTube will be near the end of the images array.
                     // However, the last image image is some kind of tracking pixel.
                     $images = array_slice($images, 0, -1);
-                    $image = array_pop($images)['url'];
-                } else if ($provider === 'vimeo') {
+                    $image  = array_pop($images)['url'];
+                } elseif ($provider === 'vimeo') {
                     // Vimeo sticks an overlay on their best quality image. Find the width, and replace it on the
                     // smaller image (without an overlay).
                     $smallImage = $images[0];
@@ -114,7 +130,7 @@ trait EmbedAwareTrait
 
                     if ($largeImage) {
                         $image = preg_replace(
-                            "/_(\d+)?(x)?(\d+)?\.[\w-]+$/",
+                            '/_(\d+)?(x)?(\d+)?\.[\w-]+$/',
                             sprintf(
                                 '_%sx%s.jpg',
                                 $largeImage['width'],
@@ -126,15 +142,17 @@ trait EmbedAwareTrait
                 }
             }
 
+            $id = null;
             if ($provider === 'youtube') {
                 $regExp = '/^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#\&\?]*).*/';
-                preg_match($regExp, $url, $match);
-                $id = ($match && strlen($match[7]) === 11) ? $match[7] : false;
+                if (preg_match($regExp, $url, $match) && isset($match[7]) && strlen($match[7]) === 11) {
+                    $id = $match[7];
+                }
             } else {
                 $regExp = '/^.*(vimeo\.com\/)((channels\/[A-z]+\/)|(groups\/[A-z]+\/videos\/))?([0-9]+)/';
-                preg_match($regExp, $url, $match);
-                $id = $match ? $match[5] : false;
-
+                if (preg_match($regExp, $url, $match) && isset($match[5])) {
+                    $id = $match[5];
+                }
             }
 
             return [
@@ -142,14 +160,10 @@ trait EmbedAwareTrait
                 'src'      => $src,
                 'image'    => $image,
                 'provider' => $provider,
-                'id'       => $id
+                'id'       => $id,
             ];
         }
 
-        if ($format === 'src') {
-            return $src;
-        }
-
-        return preg_replace($replace, '', $embedCode);
+        return $iframe;
     }
 }
