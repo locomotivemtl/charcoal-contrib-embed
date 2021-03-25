@@ -139,7 +139,7 @@ class EmbedRepository extends AbstractEntity implements
         return [
             'ident'            => $ident,
             'embed_data'       => $this->formatEmbed($ident, $format),
-            'last_update_date' => (new \DateTime())->format('Y-m-d H:i:s')
+            'last_update_date' => (new \DateTime())->format('Y-m-d H:i:s'),
         ];
     }
 
@@ -430,9 +430,17 @@ class EmbedRepository extends AbstractEntity implements
         }
 
         $item = $this->load($ident);
+        if ($item === false) {
+            $item = $this->processEmbed($ident, 'array');
+            $this->saveItem($item);
+        }
 
         if (isset($item['embed_data'])) {
-            $data = json_decode($item['embed_data'], true);
+            if (is_string($item['embed_data'])) {
+                $data = json_decode($item['embed_data'], true);
+            } else {
+                $data = $item['embed_data'];
+            }
 
             $this->validateTtl($item);
 
