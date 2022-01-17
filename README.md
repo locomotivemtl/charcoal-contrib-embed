@@ -1,13 +1,13 @@
 Charcoal Embed
 ===============
 
-[![License][badge-license]][charcoal-contrib-embed]
-[![Latest Stable Version][badge-version]][charcoal-contrib-embed]
+[![License][badge-license]][locomotivemtl/charcoal-contrib-embed]
+[![Latest Stable Version][badge-version]][locomotivemtl/charcoal-contrib-embed]
 [![Code Quality][badge-scrutinizer]][dev-scrutinizer]
 [![Coverage Status][badge-coveralls]][dev-coveralls]
 [![Build Status][badge-travis]][dev-travis]
 
-A [Charcoal][charcoal-app] service provider embed property.
+A [Charcoal][locomotivemtl/charcoal-app] service provider embed property.
 
 
 
@@ -43,15 +43,15 @@ $ composer require locomotivemtl/charcoal-contrib-embed
 
 #### Required
 
--   [**PHP 5.6+**](https://php.net): _PHP 7_ is recommended.
--   **[charcoal-property]** : ^0.7
--   **[guzzle]** : ~0.6
--   **[embed]** : ^3.3
+-   **[PHP 5.6+](https://php.net)**: _PHP 7_ is recommended.
+-   **[locomotivemtl/charcoal-property]** : ^0.8
+-   **[guzzlehttp/guzzle]** : ^6.0 or ^7.0
+-   **[embed/embed]** : ^3.4.10
 
 
 ## Service Provider
 
-The following services are provided with the use of [charcoal-contrib-embed]
+The following services are provided with the use of [locomotivemtl/charcoal-contrib-embed]
 
 ### Services
 
@@ -61,7 +61,7 @@ The following services are provided with the use of [charcoal-contrib-embed]
 ## Configuration
 
 Include the embed module in the projects's config file.
-This will provide everything needed for [charcoal-contrib-embed] to work properly.
+This will provide everything needed for [locomotivemtl/charcoal-contrib-embed] to work properly.
 No need for metadata/views/action/routes path etc.
 
 ```Json
@@ -167,10 +167,10 @@ $ composer test
 
 The charcoal-contrib-embed module follows the Charcoal coding-style:
 
--   [_PSR-1_][psr-1]
--   [_PSR-2_][psr-2]
--   [_PSR-4_][psr-4], autoloading is therefore provided by _Composer_.
--   [_phpDocumentor_](http://phpdoc.org/) comments.
+-   _[PSR-1]_
+-   _[PSR-2]_
+-   _[PSR-4]_, autoloading is therefore provided by _Composer_.
+-   _[phpDocumentor](http://phpdoc.org/)_ comments.
 -   [phpcs.xml.dist](phpcs.xml.dist) and [.editorconfig](.editorconfig) for coding standards.
 
 > Coding style validation / enforcement can be performed with `composer phpcs`. An auto-fixer is also available with `composer phpcbf`.
@@ -189,11 +189,11 @@ Charcoal is licensed under the MIT license. See [LICENSE](LICENSE) for details.
 
 
 
-[charcoal-contrib-embed]:  https://packagist.org/packages/locomotivemtl/charcoal-contrib-embed
-[charcoal-property]:       https://packagist.org/packages/locomotivemtl/charcoal-property
-[guzzle]:                  https://packagist.org/packages/guzzlehttp/guzzle
-[embed]:                   https://packagist.org/packages/embed/embed
-[charcoal-app]:            https://packagist.org/packages/locomotivemtl/charcoal-app
+[embed/embed]:                           https://packagist.org/packages/embed/embed
+[guzzlehttp/guzzle]:                     https://packagist.org/packages/guzzlehttp/guzzle
+[locomotivemtl/charcoal-app]:            https://packagist.org/packages/locomotivemtl/charcoal-app
+[locomotivemtl/charcoal-contrib-embed]:  https://packagist.org/packages/locomotivemtl/charcoal-contrib-embed
+[locomotivemtl/charcoal-property]:       https://packagist.org/packages/locomotivemtl/charcoal-property
 
 [dev-scrutinizer]:    https://scrutinizer-ci.com/g/locomotivemtl/charcoal-contrib-embed/
 [dev-coveralls]:      https://coveralls.io/r/locomotivemtl/charcoal-contrib-embed
@@ -205,10 +205,10 @@ Charcoal is licensed under the MIT license. See [LICENSE](LICENSE) for details.
 [badge-coveralls]:    https://img.shields.io/coveralls/locomotivemtl/charcoal-contrib-embed.svg?style=flat-square
 [badge-travis]:       https://img.shields.io/travis/locomotivemtl/charcoal-contrib-embed.svg?style=flat-square
 
-[psr-1]:  https://www.php-fig.org/psr/psr-1/
-[psr-2]:  https://www.php-fig.org/psr/psr-2/
-[psr-3]:  https://www.php-fig.org/psr/psr-3/
-[psr-4]:  https://www.php-fig.org/psr/psr-4/
-[psr-6]:  https://www.php-fig.org/psr/psr-6/
-[psr-7]:  https://www.php-fig.org/psr/psr-7/
-[psr-11]: https://www.php-fig.org/psr/psr-11/
+[PSR-1]:  https://www.php-fig.org/psr/psr-1/
+[PSR-2]:  https://www.php-fig.org/psr/psr-2/
+[PSR-3]:  https://www.php-fig.org/psr/psr-3/
+[PSR-4]:  https://www.php-fig.org/psr/psr-4/
+[PSR-6]:  https://www.php-fig.org/psr/psr-6/
+[PSR-7]:  https://www.php-fig.org/psr/psr-7/
+[PSR-11]: https://www.php-fig.org/psr/psr-11/
