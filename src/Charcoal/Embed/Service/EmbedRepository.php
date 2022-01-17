@@ -5,16 +5,19 @@ namespace Charcoal\Embed\Service;
 // from 'charcoal-config'
 use Charcoal\Config\AbstractEntity;
 
-// frpm Psr
+// from Psr
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 
-use RuntimeException;
-use InvalidArgumentException;
 use Exception;
-use PDOException;
+use DateInterval;
+use DateTime;
+use InvalidArgumentException;
 use PDO;
+use PDOException;
+use RuntimeException;
+use Throwable;
 
 // from 'guzzlehttp/guzzle'
 use GuzzleHttp\Client;
@@ -139,7 +142,7 @@ class EmbedRepository extends AbstractEntity implements
         return [
             'ident'            => $ident,
             'embed_data'       => $this->formatEmbed($ident, $format),
-            'last_update_date' => (new \DateTime())->format('Y-m-d H:i:s'),
+            'last_update_date' => (new DateTime())->format('Y-m-d H:i:s'),
         ];
     }
 
@@ -186,7 +189,7 @@ class EmbedRepository extends AbstractEntity implements
                     $binds[$key] = json_encode($binds[$key]);
                 }
                 $type  = (isset($types[$key]) ? $types[$key] : PDO::PARAM_STR);
-                $param = ':'.$key;
+                $param = ':' . $key;
                 $sth->bindParam($param, $binds[$key], $type);
             }
         }
@@ -229,7 +232,7 @@ class EmbedRepository extends AbstractEntity implements
 
         $query = strtr($query, [
             '%table'  => $table,
-            '%engine' => $engine
+            '%engine' => $engine,
         ]);
 
         $this->logger->debug($query);
@@ -249,7 +252,10 @@ class EmbedRepository extends AbstractEntity implements
         $table  = $this->table();
         $driver = $dbh->getAttribute(PDO::ATTR_DRIVER_NAME);
         if ($driver === self::SQLITE_DRIVER_NAME) {
-            $query = sprintf('SELECT name FROM sqlite_master WHERE type = "table" AND name = "%s";', $table);
+            $query = sprintf(
+                'SELECT `name` FROM `sqlite_master` WHERE `type` = "table" AND `name` = "%s";',
+                $table
+            );
         } else {
             $query = sprintf('SHOW TABLES LIKE "%s"', $table);
         }
@@ -290,7 +296,7 @@ class EmbedRepository extends AbstractEntity implements
                     'Null'    => !!$col['notnull'] ? 'NO' : 'YES',
                     'Default' => $col['dflt_value'],
                     'Key'     => !!$col['pk'] ? 'PRI' : '',
-                    'Extra'   => ''
+                    'Extra'   => '',
                 ];
             }
 
@@ -323,8 +329,8 @@ class EmbedRepository extends AbstractEntity implements
 
         foreach ($item as $key => $value) {
             if (in_array($key, $struct)) {
-                $keys[]      = '`'.$key.'`';
-                $values[]    = ':'.$key.'';
+                $keys[]      = '`' . $key . '`';
+                $values[]    = ':' . $key;
                 $binds[$key] = $value;
             }
         }
@@ -332,7 +338,7 @@ class EmbedRepository extends AbstractEntity implements
         $query = strtr($query, [
             '%table'  => $table,
             '%keys'   => implode(', ', $keys),
-            '%values' => implode(', ', $values)
+            '%values' => implode(', ', $values),
         ]);
 
         $result = $this->dbQuery($query, $binds);
@@ -361,11 +367,11 @@ class EmbedRepository extends AbstractEntity implements
         $table = $this->table();
         $query = 'SELECT * FROM %table WHERE `ident` = :ident LIMIT 1';
         $query = strtr($query, [
-            '%table' => $table
+            '%table' => $table,
         ]);
 
         $binds = [
-            'ident' => $ident
+            'ident' => $ident,
         ];
 
         $sth = $this->dbQuery($query, $binds);
@@ -400,14 +406,14 @@ class EmbedRepository extends AbstractEntity implements
 
         foreach ($item as $key => $value) {
             if (in_array($key, $struct)) {
-                $updates[]   = '`'.$key.'`=:'.$key.'';
+                $updates[]   = sprintf('`%1$s`=:%1$s', $key);
                 $binds[$key] = $value;
             }
         }
         $query = 'UPDATE %table SET %updates WHERE `ident` = :ident';
         $query = strtr($query, [
             '%table'   => $table,
-            '%updates' => implode(', ', $updates)
+            '%updates' => implode(', ', $updates),
         ]);
 
         $result = $this->dbQuery($query, $binds);
@@ -458,27 +464,7 @@ class EmbedRepository extends AbstractEntity implements
      */
     public function load($ident, $useCache = true, $reloadData = false)
     {
-        // if (!$useCache) {
         return $this->loadItem($ident);
-        // }
-
-        // $cacheKey = $this->cacheKey($ident);
-        // $cacheItem = $this->cachePool->getItem($cacheKey);
-        //
-        // if (!$reloadData) {
-        //     if ($cacheItem->isHit()) {
-        //         $data = $cacheItem->get();
-        //
-        //         return [];
-        //     }
-        // }
-
-        // $obj  = $this->loadFromSource($ident);
-        // $data = ($obj->id() ? $obj->data() : []);
-        // $cacheItem->set($data);
-        // $this->cachePool->save($cacheItem);
-
-        // return [];
     }
 
     /**
@@ -489,7 +475,7 @@ class EmbedRepository extends AbstractEntity implements
      */
     private function cacheKey($ident)
     {
-        $cacheKey = 'embed/'.parse_url($ident);
+        $cacheKey = 'embed/' . parse_url($ident);
 
         return $cacheKey;
     }
@@ -501,12 +487,13 @@ class EmbedRepository extends AbstractEntity implements
     private function validateTtl(array $item)
     {
         try {
-            $ttl = new \DateInterval(sprintf('PT%sS', $this->ttl()));
+            $ttl = new DateInterval(sprintf('PT%sS', $this->ttl()));
         } catch (Exception $e) {
             $this->logger->error($e->getMessage());
         }
-        $now        = new \DateTime();
-        $lastUpdate = new \DateTime($item['last_update_date']);
+
+        $now        = new DateTime();
+        $lastUpdate = new DateTime($item['last_update_date']);
 
         if ($lastUpdate->add($ttl) < $now || $item['last_update_date'] === null) {
             // timeout is there to force the request not to wait for a response.
@@ -514,24 +501,24 @@ class EmbedRepository extends AbstractEntity implements
                 'base_uri'    => $this->baseUrl,
                 'timeout'     => 0.0001,
                 'synchronous' => false,
-                'verify'      => true
+                'verify'      => true,
             ]);
 
             $promises = [
                 $client->postAsync('/admin/embed/update', [
                     'json' => [
-                        'ident' => $item['ident']
-                    ]
-                ])
+                        'ident' => $item['ident'],
+                    ],
+                ]),
             ];
 
             // prevent multiple calls to embed/update by updating update_date right now.
-            $item['last_update_date'] = (new \DateTime())->format('Y-m-d H:i:s');
+            $item['last_update_date'] = (new DateTime())->format('Y-m-d H:i:s');
             $this->updateItem($item);
 
             try {
                 unwrap($promises);
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 $this->logger->error($e->getMessage());
             }
         }

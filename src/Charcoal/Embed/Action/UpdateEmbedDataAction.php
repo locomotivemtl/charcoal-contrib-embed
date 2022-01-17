@@ -72,7 +72,7 @@ class UpdateEmbedDataAction extends AbstractAction
     public function results()
     {
         return [
-            'success' => $this->success()
+            'success' => $this->success(),
         ];
     }
 }
