@@ -9,7 +9,7 @@ use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 
 /**
- * UpdateEmbedDataAction
+ * Update Embed Data Action Controller
  */
 class UpdateEmbedDataAction extends AbstractAction
 {
@@ -23,7 +23,7 @@ class UpdateEmbedDataAction extends AbstractAction
      * The `$container` DI-container (from `Pimple`) should not be saved or passed around, only to be used to
      * inject dependencies (typically via setters).
      *
-     * @param Container $container A dependencies container instance.
+     * @param  Container $container A dependencies container instance.
      * @return void
      */
     protected function setDependencies(Container $container)
@@ -38,8 +38,8 @@ class UpdateEmbedDataAction extends AbstractAction
      *
      * Called from `__invoke()` as the first thing.
      *
-     * @param RequestInterface  $request  A PSR-7 compatible Request instance.
-     * @param ResponseInterface $response A PSR-7 compatible Response instance.
+     * @param  RequestInterface  $request  A PSR-7 compatible Request instance.
+     * @param  ResponseInterface $response A PSR-7 compatible Response instance.
      * @return ResponseInterface
      */
     public function run(RequestInterface $request, ResponseInterface $response)

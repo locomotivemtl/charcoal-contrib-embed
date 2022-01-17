@@ -10,7 +10,7 @@ use Pimple\Container;
 use RuntimeException;
 
 /**
- * Class EmbedProperty
+ * Embed Property
  */
 class EmbedProperty extends UrlProperty
 {
@@ -22,7 +22,7 @@ class EmbedProperty extends UrlProperty
     protected $embedFormat = 'array';
 
     /**
-     * @param Container $container A Pimple DI container.
+     * @param  Container $container A Pimple DI container.
      * @return void
      */
     protected function setDependencies(Container $container)
@@ -33,7 +33,7 @@ class EmbedProperty extends UrlProperty
     }
 
     /**
-     * @return null|string
+     * @return string|null
      */
     public function embedFormat()
     {
@@ -41,18 +41,18 @@ class EmbedProperty extends UrlProperty
     }
 
     /**
-     * @param null|string $embedFormat EmbedFormat for EmbedProperty.
+     * @param  string|null $format The embed value return format.
      * @return self
      */
-    public function setEmbedFormat($embedFormat)
+    public function setEmbedFormat($format)
     {
-        $this->embedFormat = $embedFormat;
+        $this->embedFormat = $format;
 
         return $this;
     }
 
     /**
-     * @param mixed $val The value, at time of saving.
+     * @param  mixed $val The value, at time of saving.
      * @return mixed
      */
     public function save($val)

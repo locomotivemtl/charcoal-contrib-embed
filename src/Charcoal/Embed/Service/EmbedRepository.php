@@ -23,7 +23,7 @@ use function GuzzleHttp\Promise\unwrap;
 /**
  * Embed Repository
  *
- * - Store scraped data from embed/embed in a provided database table.
+ * Store scraped data from embed/embed in a provided database table.
  */
 class EmbedRepository extends AbstractEntity implements
     EmbedRepositoryInterface,
@@ -82,7 +82,7 @@ class EmbedRepository extends AbstractEntity implements
     // ==========================================================================
 
     /**
-     * @param array $data Dependencies.
+     * @param  array $data Dependencies.
      * @throws Exception If missing dependencies.
      * @return self
      */
@@ -104,8 +104,8 @@ class EmbedRepository extends AbstractEntity implements
     // ==========================================================================
 
     /**
-     * @param string $ident  The embed ident to save from.
-     * @param string $format The embed format (null, src, array) @see{Charcoal\Embed\Mixin\EmbedAwareTrait}.
+     * @param  string $ident  The embed ident to save from.
+     * @param  string $format The embed format (null, src, array) @see{Charcoal\Embed\Mixin\EmbedAwareTrait}.
      * @return mixed
      */
     public function saveEmbedData($ident, $format = null)
@@ -126,8 +126,8 @@ class EmbedRepository extends AbstractEntity implements
     }
 
     /**
-     * @param string $ident  The embed ident to process.
-     * @param string $format The embed format (null, src, array) @see{Charcoal\Embed\Mixin\EmbedAwareTrait}.
+     * @param  string $ident  The embed ident to process.
+     * @param  string $format The embed format (null, src, array) @see{Charcoal\Embed\Mixin\EmbedAwareTrait}.
      * @return array
      */
     private function processEmbed($ident, $format = null)
@@ -419,7 +419,7 @@ class EmbedRepository extends AbstractEntity implements
     }
 
     /**
-     * @param string $ident The embed url to load data from.
+     * @param  string $ident The embed url to load data from.
      * @return boolean|mixed
      */
     public function embedData($ident)
@@ -450,9 +450,9 @@ class EmbedRepository extends AbstractEntity implements
     }
 
     /**
-     * @param string  $ident      The embed data ident to load.
-     * @param boolean $useCache   If FALSE, ignore the cached object. Defaults to TRUE.
-     * @param boolean $reloadData If TRUE, refresh the cached object. Defaults to FALSE.
+     * @param  string  $ident      The embed data ident to load.
+     * @param  boolean $useCache   If FALSE, ignore the cached object. Defaults to TRUE.
+     * @param  boolean $reloadData If TRUE, refresh the cached object. Defaults to FALSE.
      * @return mixed
      */
     public function load($ident, $useCache = true, $reloadData = false)
@@ -474,7 +474,7 @@ class EmbedRepository extends AbstractEntity implements
     }
 
     /**
-     * @param array $item The embed item.
+     * @param  array $item The embed item.
      * @return void
      */
     private function validateTtl(array $item)
@@ -564,7 +564,7 @@ class EmbedRepository extends AbstractEntity implements
     }
 
     /**
-     * @param string $table Table for EmbedRepository.
+     * @param  string $table Table for EmbedRepository.
      * @throws InvalidArgumentException When $table is not a string.
      * @return self
      */
@@ -613,7 +613,7 @@ class EmbedRepository extends AbstractEntity implements
     }
 
     /**
-     * @param integer $ttl Ttl for EmbedRepository.
+     * @param  integer $ttl Ttl for EmbedRepository.
      * @return self
      */
     public function setTtl($ttl)
@@ -632,7 +632,7 @@ class EmbedRepository extends AbstractEntity implements
     }
 
     /**
-     * @param string $format Format for EmbedRepository.
+     * @param  string $format Format for EmbedRepository.
      * @return self
      */
     public function setFormat($format)

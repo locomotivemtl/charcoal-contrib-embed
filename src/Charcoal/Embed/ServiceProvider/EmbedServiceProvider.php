@@ -7,7 +7,7 @@ use Pimple\Container;
 use Pimple\ServiceProviderInterface;
 
 /**
- * The Embed Contrib Service Provider
+ * Embed Contrib Service Provider
  */
 class EmbedServiceProvider implements ServiceProviderInterface
 {
@@ -20,7 +20,7 @@ class EmbedServiceProvider implements ServiceProviderInterface
     public function register(Container $container)
     {
         /**
-         * @param Container $container Pimple container.
+         * @param  Container $container Pimple container.
          * @return EmbedRepository
          */
         $container['embed/repository'] = function (Container $container) {

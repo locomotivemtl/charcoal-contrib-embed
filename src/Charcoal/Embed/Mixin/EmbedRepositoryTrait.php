@@ -6,10 +6,7 @@ use Charcoal\Embed\Contract\EmbedRepositoryInterface;
 use RuntimeException;
 
 /**
- * Provides Awareness to Embed Repository.
- *
- * Trait EmbedRepositoryAwareTrait
- * @package Charcoal\Embed\Mixin
+ * Provides awareness to embed repository.
  */
 trait EmbedRepositoryTrait
 {
@@ -37,12 +34,12 @@ trait EmbedRepositoryTrait
     }
 
     /**
-     * @param EmbedRepositoryInterface $embedRepository EmbedRepository for EmbedRepositoryAwareTrait.
+     * @param  EmbedRepositoryInterface $repository The embed repository.
      * @return self
      */
-    public function setEmbedRepository(EmbedRepositoryInterface $embedRepository)
+    public function setEmbedRepository(EmbedRepositoryInterface $repository)
     {
-        $this->embedRepository = $embedRepository;
+        $this->embedRepository = $repository;
 
         return $this;
     }
