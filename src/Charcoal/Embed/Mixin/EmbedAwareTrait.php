@@ -2,6 +2,7 @@
 
 namespace Charcoal\Embed\Mixin;
 
+use Charcoal\Embed\Contract\EmbedRepositoryInterface;
 use Charcoal\Translator\Translation;
 use Embed\Embed;
 use Exception;
@@ -100,11 +101,11 @@ trait EmbedAwareTrait
             }
         }
 
-        if ($format === 'src') {
+        if ($format === EmbedRepositoryInterface::FORMAT_SRC) {
             return $src;
         }
 
-        if ($format === 'array') {
+        if ($format === EmbedRepositoryInterface::FORMAT_ARRAY) {
             $provider = strtolower($embed->providerName);
 
             // Extract an image preview from embedable iframe.

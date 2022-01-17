@@ -7,6 +7,10 @@ namespace Charcoal\Embed\Contract;
  */
 interface EmbedRepositoryInterface
 {
+    const FORMAT_ARRAY = 'array';
+    const FORMAT_HTML  = 'html';
+    const FORMAT_SRC   = 'src';
+
     /**
      * @param  string $ident  The embed URI to save from.
      * @param  string $format The embed format.

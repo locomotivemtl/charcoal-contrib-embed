@@ -430,7 +430,7 @@ class EmbedRepository extends AbstractEntity implements
 
         $item = $this->load($ident);
         if ($item === false) {
-            $item = $this->processEmbed($ident, 'array');
+            $item = $this->processEmbed($ident, self::FORMAT_ARRAY);
             $this->saveItem($item);
         }
 
@@ -632,18 +632,57 @@ class EmbedRepository extends AbstractEntity implements
     }
 
     /**
-     * @param  string $format Format for EmbedRepository.
+     * @param  string $format The embed format.
      * @return self
      */
     public function setFormat($format)
     {
-        switch ($format) {
-            case 'array':
-            case 'src':
-                $this->format = $format;
-                break;
-        }
+        $this->assertValidFormat($format);
+
+        $this->format = $format;
 
         return $this;
+    }
+
+    /**
+     * Determines if the embed format is valid.
+     *
+     * @param  string $format The format to test.
+     * @return boolean
+     */
+    public function isValidFormat($format)
+    {
+        switch ($format) {
+            case self::FORMAT_ARRAY:
+            case self::FORMAT_HTML:
+            case self::FORMAT_SRC:
+                return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Asserts that the embed format is valid, throws an exception if not.
+     *
+     * @param  string $format The format to test.
+     * @throws InvalidArgumentException If the format is not a string or unsupported.
+     * @return void
+     */
+    public function assertValidFormat($format)
+    {
+        if (!is_string($format)) {
+            throw new InvalidArgumentException(sprintf(
+                'Unsupported format; must be a string, received %s',
+                (is_object($format) ? get_class($format) : gettype($format))
+            ));
+        }
+
+        if (!$this->isValidFormat($format)) {
+            throw new InvalidArgumentException(sprintf(
+                'Unsupported "%s" format',
+                $format
+            ));
+        }
     }
 }

@@ -19,7 +19,7 @@ class EmbedProperty extends UrlProperty
     /**
      * @var string|null $embedFormat
      */
-    protected $embedFormat = 'array';
+    protected $embedFormat = EmbedRepository::FORMAT_ARRAY;
 
     /**
      * @param  Container $container A Pimple DI container.
@@ -46,6 +46,8 @@ class EmbedProperty extends UrlProperty
      */
     public function setEmbedFormat($format)
     {
+        $this->embedRepository()->assertValidFormat($format);
+
         $this->embedFormat = $format;
 
         return $this;
