@@ -60,15 +60,22 @@ class EmbedProperty extends UrlProperty
         $val = parent::save($val);
 
         if ($val instanceof Translation) {
-            foreach ($val->data() as $lang => $value) {
-                if (!empty($value)) {
-                    $this->embedRepository()->saveEmbedData($value, $this->embedFormat());
-                }
-            }
-        } else {
-            if (!empty($val)) {
-                $this->embedRepository()->saveEmbedData($val, $this->embedFormat());
-            }
+            return $val->each(function ($v) {
+                return $this->saveEmbedData($v);
+            });
+        }
+
+        return $this->saveEmbedData($val);
+    }
+
+    /**
+     * @param  mixed $val The value, at time of saving.
+     * @return mixed
+     */
+    private function saveEmbedData($val)
+    {
+        if (!empty($val)) {
+            $this->embedRepository()->saveEmbedData($val, $this->embedFormat());
         }
 
         return $val;
