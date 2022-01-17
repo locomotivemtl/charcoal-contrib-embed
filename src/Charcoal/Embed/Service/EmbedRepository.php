@@ -2,30 +2,23 @@
 
 namespace Charcoal\Embed\Service;
 
-// from 'charcoal-config'
 use Charcoal\Config\AbstractEntity;
-
-// from Psr
-use Psr\Cache\CacheItemPoolInterface;
-use Psr\Log\LoggerAwareInterface;
-use Psr\Log\LoggerAwareTrait;
-
-use Exception;
+use Charcoal\Embed\Contract\EmbedRepositoryInterface;
+use Charcoal\Embed\Mixin\EmbedAwareTrait;
 use DateInterval;
 use DateTime;
+use Exception;
+use GuzzleHttp\Client;
 use InvalidArgumentException;
 use PDO;
 use PDOException;
+use Psr\Cache\CacheItemPoolInterface;
+use Psr\Log\LoggerAwareInterface;
+use Psr\Log\LoggerAwareTrait;
 use RuntimeException;
 use Throwable;
 
-// from 'guzzlehttp/guzzle'
-use GuzzleHttp\Client;
 use function GuzzleHttp\Promise\unwrap;
-
-// local
-use Charcoal\Embed\Contract\EmbedRepositoryInterface;
-use Charcoal\Embed\Mixin\EmbedAwareTrait;
 
 /**
  * Embed Repository

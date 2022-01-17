@@ -2,10 +2,9 @@
 
 namespace Charcoal\Embed\ServiceProvider;
 
-// from 'pimple'
 use Charcoal\Embed\Service\EmbedRepository;
-use Pimple\ServiceProviderInterface;
 use Pimple\Container;
+use Pimple\ServiceProviderInterface;
 
 /**
  * The Embed Contrib Service Provider

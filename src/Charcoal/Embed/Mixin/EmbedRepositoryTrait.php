@@ -2,8 +2,8 @@
 
 namespace Charcoal\Embed\Mixin;
 
-use RuntimeException;
 use Charcoal\Embed\Contract\EmbedRepositoryInterface;
+use RuntimeException;
 
 /**
  * Provides Awareness to Embed Repository.

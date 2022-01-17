@@ -2,13 +2,9 @@
 
 namespace Charcoal\Embed\Mixin;
 
-use Exception;
-
-// From 'embed/embed'
-use Embed\Embed;
-
-// From 'charcoal-translator'
 use Charcoal\Translator\Translation;
+use Embed\Embed;
+use Exception;
 
 /**
  * Provides support for the use of embedded ressource.

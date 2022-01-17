@@ -2,18 +2,11 @@
 
 namespace Charcoal\Embed\Action;
 
-// from Psr-7
+use Charcoal\App\Action\AbstractAction;
+use Charcoal\Embed\Mixin\EmbedRepositoryTrait;
+use Pimple\Container;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
-
-// from 'charcoal-app'
-use Charcoal\App\Action\AbstractAction;
-
-// from 'pimple'
-use Pimple\Container;
-
-// local
-use Charcoal\Embed\Mixin\EmbedRepositoryTrait;
 
 /**
  * UpdateEmbedDataAction
