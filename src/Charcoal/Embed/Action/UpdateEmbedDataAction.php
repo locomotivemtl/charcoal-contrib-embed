@@ -4,6 +4,7 @@ namespace Charcoal\Embed\Action;
 
 use Charcoal\App\Action\AbstractAction;
 use Charcoal\Embed\Mixin\EmbedRepositoryTrait;
+use Charcoal\Embed\Contract\EmbedRepositoryInterface;
 use Pimple\Container;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -46,7 +47,7 @@ class UpdateEmbedDataAction extends AbstractAction
     {
         $ident = $request->getParam('ident');
 
-        $results = $this->embedRepository()->saveEmbedData($ident, self::FORMAT_ARRAY);
+        $results = $this->embedRepository()->saveEmbedData($ident, EmbedRepositoryInterface::FORMAT_ARRAY);
 
         if ($results['ident']) {
             $this->setSuccess(true);
