@@ -88,15 +88,18 @@ trait EmbedAwareTrait
         // Fix unencoded ampersands
         $iframe = preg_replace('~&(?!amp;)~i', '&amp;', $iframe);
 
-        // Extract the `src` attribute from embedable iframe.
-        $src = null;
-        $doc = new \DOMDocument();
-        if ($doc->loadHTML($iframe)) {
-            $elems = $doc->getElementsByTagName('iframe');
-            if ($elems->length > 0) {
-                $elem = $elems->item(0);
-                if ($elem->hasAttribute('src')) {
-                    $src = $elem->getAttribute('src');
+        $src = $url;
+
+        if (strpos($iframe, 'iframe') !== false) {
+            // Extract the `src` attribute from embedable iframe.
+            $doc = new \DOMDocument();
+            if ($doc->loadHTML($iframe)) {
+                $elems = $doc->getElementsByTagName('iframe');
+                if ($elems->length > 0) {
+                    $elem = $elems->item(0);
+                    if ($elem->hasAttribute('src')) {
+                        $src = $elem->getAttribute('src');
+                    }
                 }
             }
         }
