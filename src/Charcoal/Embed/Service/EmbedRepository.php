@@ -9,6 +9,7 @@ use DateInterval;
 use DateTime;
 use Exception;
 use GuzzleHttp\Client;
+use GuzzleHttp\Promise\Utils;
 use InvalidArgumentException;
 use PDO;
 use PDOException;
@@ -17,8 +18,6 @@ use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use RuntimeException;
 use Throwable;
-
-use function GuzzleHttp\Promise\unwrap;
 
 /**
  * Embed Repository
@@ -510,7 +509,7 @@ class EmbedRepository extends AbstractEntity implements
             $this->updateItem($item);
 
             try {
-                unwrap($promises);
+                Utils::unwrap($promises);
             } catch (Throwable $e) {
                 $this->logger->error($e->getMessage());
             }
