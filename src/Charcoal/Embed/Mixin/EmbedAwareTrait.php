@@ -4,6 +4,8 @@ namespace Charcoal\Embed\Mixin;
 
 use Charcoal\Embed\Contract\EmbedRepositoryInterface;
 use Charcoal\Translator\Translation;
+use DOMDocument;
+use DOMElement;
 use Embed\Embed;
 use Exception;
 
@@ -92,12 +94,16 @@ trait EmbedAwareTrait
 
         if (strpos($iframe, 'iframe') !== false) {
             // Extract the `src` attribute from embedable iframe.
-            $doc = new \DOMDocument();
+            $doc = new DOMDocument();
             if ($doc->loadHTML($iframe)) {
                 $elems = $doc->getElementsByTagName('iframe');
                 if ($elems->length > 0) {
                     $elem = $elems->item(0);
-                    if ($elem->hasAttribute('src')) {
+                    if (
+                        $elem &&
+                        ($elem instanceof DOMElement) &&
+                        $elem->hasAttribute('src')
+                    ) {
                         $src = $elem->getAttribute('src');
                     }
                 }
