@@ -440,8 +440,6 @@ class EmbedRepository extends AbstractEntity implements
                 $data = $item['embed_data'];
             }
 
-            $this->validateTtl($item);
-
             return $data;
         }
 
