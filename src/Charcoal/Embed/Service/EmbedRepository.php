@@ -385,6 +385,10 @@ class EmbedRepository extends AbstractEntity implements
      */
     public function updateItem($item)
     {
+        if (!$item['embed_data'] || empty($item['embed_data'])) {
+           throw new Exception(sprintf('Could not update item %s. Please try again later', $item['ident']));
+        }
+
         if ($this->tableExists() === false) {
             /** @todo Optionnally turn off for some models */
             $this->createTable();
