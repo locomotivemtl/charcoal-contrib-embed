@@ -92,7 +92,7 @@ trait EmbedAwareTrait
 
         $src = $url;
 
-        if (strpos($iframe, 'iframe') !== false) {
+        if (strpos($iframe, '<iframe') !== false) {
             // Extract the `src` attribute from embedable iframe.
             $doc = new DOMDocument();
             if ($doc->loadHTML($iframe)) {
