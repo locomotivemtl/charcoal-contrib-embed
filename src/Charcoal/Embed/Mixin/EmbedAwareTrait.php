@@ -123,41 +123,53 @@ trait EmbedAwareTrait
             $image  = $embed->image;
 
             if (count($images) > 1) {
-                if ($provider === 'youtube') {
-                    // The largest image available for YouTube will be near the end of the images array.
-                    // However, the last image image is some kind of tracking pixel.
-                    $images = array_slice($images, 0, -1);
-                    $image  = array_pop($images)['url'];
-                } elseif ($provider === 'vimeo') {
-                    // Vimeo sticks an overlay on their best quality image. Find the width, and replace it on the
-                    // smaller image (without an overlay).
-                    $smallImage = $images[0];
-                    $largeImage = array_pop($images);
+                switch ($provider) {
+                    case 'youtube': {
+                        // The largest image available for YouTube will be near the end of the images array.
+                        // However, the last image image is some kind of tracking pixel.
+                        $images = array_slice($images, 0, -1);
+                        $image  = array_pop($images)['url'];
+                        break;
+                    }
 
-                    if ($largeImage) {
-                        $image = preg_replace(
-                            '/_(\d+)?(x)?(\d+)?\.[\w-]+$/',
-                            sprintf(
-                                '_%sx%s.jpg',
-                                $largeImage['width'],
-                                $largeImage['height']
-                            ),
-                            $smallImage['url']
-                        );
+                    case 'vimeo': {
+                        // Vimeo sticks an overlay on their best quality image. Find the width, and replace it on the
+                        // smaller image (without an overlay).
+                        $smallImage = $images[0];
+                        $largeImage = array_pop($images);
+
+                        if ($largeImage) {
+                            $image = preg_replace(
+                                '/_(\d+)?(x)?(\d+)?\.[\w-]+$/',
+                                sprintf(
+                                    '_%sx%s.jpg',
+                                    $largeImage['width'],
+                                    $largeImage['height']
+                                ),
+                                $smallImage['url']
+                            );
+                        }
+                        break;
                     }
                 }
             }
 
             $id = null;
-            if ($provider === 'youtube') {
-                $regExp = '/^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#\&\?]*).*/';
-                if (preg_match($regExp, $url, $match) && isset($match[7]) && strlen($match[7]) === 11) {
-                    $id = $match[7];
+            switch ($provider) {
+                case 'youtube': {
+                    $regExp = '/^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#\&\?]*).*/';
+                    if (preg_match($regExp, $url, $match) && isset($match[7]) && strlen($match[7]) === 11) {
+                        $id = $match[7];
+                    }
+                    break;
                 }
-            } else {
-                $regExp = '/^.*(vimeo\.com\/)((channels\/[A-z]+\/)|(groups\/[A-z]+\/videos\/))?([0-9]+)/';
-                if (preg_match($regExp, $url, $match) && isset($match[5])) {
-                    $id = $match[5];
+
+                case 'vimeo': {
+                    $regExp = '/^.*(vimeo\.com\/)((channels\/[A-z]+\/)|(groups\/[A-z]+\/videos\/))?([0-9]+)/';
+                    if (preg_match($regExp, $url, $match) && isset($match[5])) {
+                        $id = $match[5];
+                    }
+                    break;
                 }
             }
 
