@@ -35,6 +35,9 @@ class EmbedRepository implements
     /** The database table name. */
     private ?string $tableName = null;
 
+    /** Recall if table exists. */
+    private ?bool $tableExists = null;
+
     /** The database connector. */
     private PDO $pdo;
 
@@ -187,19 +190,14 @@ class EmbedRepository implements
      * @throws PDOException If the database table could not be created.
      * @return true TRUE if the table was created, otherwise FALSE.
      */
-    private function createTable(): bool
+    private function performCreateTable(): bool
     {
-        if ($this->tableExists() === true) {
-            return true;
-        }
-
-        $dbh    = $this->pdo;
-        $driver = $dbh->getAttribute(PDO::ATTR_DRIVER_NAME);
+        $driver = $this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
         $table  = $this->getTableName();
         $engine = '';
 
         $query = <<<'SQL'
-            CREATE TABLE `%table` (
+            CREATE TABLE IF NOT EXISTS `%table` (
                 `ident` VARCHAR(255) NOT NULL DEFAULT "",
                 `embed_data` TEXT,
                 `last_update_date` DATETIME,
@@ -218,25 +216,25 @@ class EmbedRepository implements
         ]);
 
         $this->logger->debug($query);
-        if (!$dbh->query($query)) {
+        if (!$this->pdo->query($query)) {
             throw new PDOException(
                 'Could not create embed database table'
             );
         }
 
+        $this->tableExists = true;
         return true;
     }
 
     /**
-     * Determine if the source table exists.
+     * Query the datanase to determine if the table exists.
      *
      * @return bool TRUE if the table exists, otherwise FALSE.
      */
-    private function tableExists(): bool
+    private function performTableExists(): bool
     {
-        $dbh    = $this->pdo;
         $table  = $this->getTableName();
-        $driver = $dbh->getAttribute(PDO::ATTR_DRIVER_NAME);
+        $driver = $this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
         if ($driver === self::SQLITE_DRIVER_NAME) {
             $query = sprintf(
                 'SELECT `name` FROM `sqlite_master` WHERE `type` = "table" AND `name` = "%s";',
@@ -247,10 +245,20 @@ class EmbedRepository implements
         }
 
         $this->logger->debug($query);
-        $sth    = $dbh->query($query);
+        $sth    = $this->pdo->query($query);
         $exists = $sth->fetchColumn(0);
 
         return (bool) $exists;
+    }
+
+    /**
+     * Determine if the database table exists.
+     *
+     * @return bool TRUE if the table exists, otherwise FALSE.
+     */
+    private function tableExists(): bool
+    {
+        return $this->tableExists ??= $this->performTableExists();
     }
 
     /**
@@ -260,9 +268,8 @@ class EmbedRepository implements
      */
     private function tableStructure(): array
     {
-        $dbh    = $this->pdo;
         $table  = $this->getTableName();
-        $driver = $dbh->getAttribute(PDO::ATTR_DRIVER_NAME);
+        $driver = $this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
         if ($driver === self::SQLITE_DRIVER_NAME) {
             $query = sprintf('PRAGMA table_info("%s") ', $table);
         } else {
@@ -270,7 +277,7 @@ class EmbedRepository implements
         }
 
         $this->logger->debug($query);
-        $sth = $dbh->query($query);
+        $sth = $this->pdo->query($query);
 
         $cols = $sth->fetchAll((PDO::FETCH_GROUP | PDO::FETCH_UNIQUE | PDO::FETCH_ASSOC));
         if ($driver === self::SQLITE_DRIVER_NAME) {
@@ -302,7 +309,7 @@ class EmbedRepository implements
     private function saveItem(array $item)
     {
         if (!$this->tableExists()) {
-            $this->createTable();
+            $this->performCreateTable();
         }
 
         $table  = $this->getTableName();
@@ -455,6 +462,7 @@ class EmbedRepository implements
         }
 
         $this->tableName = $name;
+        $this->tableExists = null;
 
         return $this;
     }
