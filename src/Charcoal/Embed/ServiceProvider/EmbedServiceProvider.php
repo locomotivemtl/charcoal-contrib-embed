@@ -12,23 +12,14 @@ use Pimple\ServiceProviderInterface;
 class EmbedServiceProvider implements ServiceProviderInterface
 {
     /**
-     * Register the contrib's services.
-     *
-     * @param  Container $container The service locator.
      * @return void
      */
     public function register(Container $container)
     {
-        /**
-         * @param  Container $container Pimple container.
-         * @return EmbedRepository
-         */
-        $container['embed/repository'] = function (Container $container) {
-            return new EmbedRepository([
-                'pdo'           => $container['database'],
-                'logger'        => $container['logger'],
-                'embed_config'  => $container['config']->get('embed_config'),
-            ]);
-        };
+        $container['embed/repository'] = fn(Container $container): EmbedRepository => new EmbedRepository(
+            $container['database'],
+            $container['logger'],
+            $container['config']->get('embed_config') ?? [],
+        );
     }
 }

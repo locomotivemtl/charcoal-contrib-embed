@@ -17,7 +17,7 @@ $ composer require locomotivemtl/charcoal-contrib-embed
 
 #### Required
 
-* **[PHP](https://php.net)** v5.6, v7.2 to v7.4, or v8
+* **[PHP](https://php.net)** v7.4 or v8
 * **[locomotivemtl/charcoal-app]** : v0.8+
 * **[locomotivemtl/charcoal-property]** : v0.8+
 * **[guzzlehttp/psr7]** : v2.11
@@ -80,7 +80,7 @@ The contrib package provides a custom `embed` model property that upon save will
 A URL's embed data can be retrieved using the `EmbedRepository`:
 
 ```php
-$this->embedRepository()->embedData('https://youtube.com/{video_id}');
+$this->embedRepository()->getEmbedData('https://youtube.com/{video_id}');
 ```
 
 ## Development

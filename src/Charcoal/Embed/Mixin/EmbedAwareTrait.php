@@ -17,12 +17,14 @@ trait EmbedAwareTrait
     /**
      * Format the embed link.
      *
-     * @param  mixed       $value  The link to the embedable resource.
-     * @param  string|null $format The format in which to return the embed.
-     * @return Translation|array|string|null
+     * @param  mixed  $value  The link to the embedable resource.
+     * @param  string $format The format in which to return the embed.
+     * @return mixed
      */
-    public function formatEmbed($value, $format = null)
-    {
+    public function formatEmbed(
+        $value,
+        string $format = EmbedRepositoryInterface::FORMAT_HTML
+    ) {
         if (empty($value) && !is_numeric($value)) {
             return $value;
         }
@@ -38,7 +40,7 @@ trait EmbedAwareTrait
         } elseif (is_array($value)) {
             foreach ($value as $k => $v) {
                 try {
-                    $value[$k] = $this->resolveEmbedFormat($value[$k], $format);
+                    $value[$k] = $this->resolveEmbedFormat($v, $format);
                 } catch (Exception $e) {
                     $value[$k] = null;
                 }
@@ -57,15 +59,15 @@ trait EmbedAwareTrait
     /**
      * Resolve the format of an embedable resource.
      *
-     * @param  string      $url    The URL to the embedable resource.
-     * @param  string|null $format The format in which to return the embed. Defaults to 'iframe'.
-     * @return array|string|null Returns a string of HTML or the URL of the source object.
+     * @param  string $url    The URL to the embedable resource.
+     * @param  string $format The format in which to return the embed. Defaults to 'iframe'.
+     * @return array<string, mixed>|string|null Returns a string of HTML or the URL of the source object.
      */
-    protected function resolveEmbedFormat($url, $format = null)
-    {
-        if (is_string($url)) {
-            $url = trim($url);
-        }
+    protected function resolveEmbedFormat(
+        string $url,
+        string $format = EmbedRepositoryInterface::FORMAT_HTML
+    ) {
+        $url = trim($url);
 
         if (!$url) {
             return null;

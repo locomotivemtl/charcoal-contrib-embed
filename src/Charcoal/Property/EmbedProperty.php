@@ -2,6 +2,7 @@
 
 namespace Charcoal\Property;
 
+use Charcoal\Embed\Contract\EmbedRepositoryInterface;
 use Charcoal\Embed\Mixin\EmbedRepositoryTrait;
 use Charcoal\Property\UrlProperty;
 use Charcoal\Translator\Translation;
@@ -14,11 +15,10 @@ class EmbedProperty extends UrlProperty
 {
     use EmbedRepositoryTrait;
 
-    /** @var ?string The default format of embed data. */
-    protected $embedFormat = null;
+    /** @var ?EmbedRepositoryInterface::FORMAT_* The default format of embed data. */
+    protected ?string $embedFormat = null;
 
     /**
-     * @param  Container $container A Pimple DI container.
      * @return void
      */
     protected function setDependencies(Container $container)
@@ -28,23 +28,17 @@ class EmbedProperty extends UrlProperty
         $this->setEmbedRepository($container['embed/repository']);
     }
 
-    /**
-     * @return string
-     */
-    public function embedFormat()
+    public function getEmbedFormat(): string
     {
-        if ($this->embedFormat) {
-            return $this->embedFormat;
-        }
-
-        return $this->embedRepository()->format();
+        return $this->embedFormat ?? $this->embedRepository()->getFormat();
     }
 
     /**
-     * @param  ?string $format The embed value return format.
-     * @return self
+     * @param  ?string $format The default format or
+     *     NULL to fallback to the repository's default format.
+     * @return static
      */
-    public function setEmbedFormat($format)
+    public function setEmbedFormat(?string $format)
     {
         if (is_string($format)) {
             $this->embedRepository()->assertValidFormat($format);
@@ -56,38 +50,44 @@ class EmbedProperty extends UrlProperty
     }
 
     /**
-     * @param  mixed $val The value, at time of saving.
-     * @return mixed
+     * @param  mixed $val
+     * @return string
+     */
+    public function parseOne($val)
+    {
+        return trim(parent::parseOne($val));
+    }
+
+    /**
+     * @param  Translation|array<string>|string $val The value, at time of saving.
+     * @return Translation|array<string>|string
      */
     public function save($val)
     {
         $val = parent::save($val);
 
         if ($val instanceof Translation) {
-            return $val->each(function ($v) {
-                return $this->saveEmbedData($v);
-            });
+            return $val->each(
+                fn($v) => $this->saveEmbedData($v)
+            );
         }
 
         if (is_array($val)) {
-            return array_map(function ($v) {
-                return $this->saveEmbedData($v);
-            }, $val);
+            return array_map(
+                fn($v) => $this->saveEmbedData($v),
+                $val
+            );
         }
 
         return $this->saveEmbedData($val);
     }
 
-    /**
-     * @param  mixed $val The value, at time of saving.
-     * @return mixed
-     */
-    private function saveEmbedData($val)
+    private function saveEmbedData(string $url): string
     {
-        if ($val) {
-            $this->embedRepository()->saveEmbedData($val);
+        if ($url) {
+            $this->embedRepository()->saveEmbedData($url);
         }
 
-        return $val;
+        return $url;
     }
 }

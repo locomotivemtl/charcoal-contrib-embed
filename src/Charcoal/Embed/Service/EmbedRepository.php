@@ -4,14 +4,15 @@ namespace Charcoal\Embed\Service;
 
 use Charcoal\Embed\Contract\EmbedRepositoryInterface;
 use Charcoal\Embed\Mixin\EmbedAwareTrait;
-use DateTime;
+use DateTimeImmutable;
 use Exception;
 use InvalidArgumentException;
 use PDO;
 use PDOException;
+use PDOStatement;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
-use RuntimeException;
+use Psr\Log\LoggerInterface;
 use UnexpectedValueException;
 
 /**
@@ -26,66 +27,53 @@ class EmbedRepository implements
     use LoggerAwareTrait;
     use EmbedAwareTrait;
 
-    const DEFAULT_TABLE = 'embed_cache';
+    const DEFAULT_TABLE_NAME = 'embed_cache';
 
     const MYSQL_DRIVER_NAME = 'mysql';
     const SQLITE_DRIVER_NAME = 'sqlite';
 
-    /**
-     * @var string
-     */
-    private $table;
+    /** The database table name. */
+    private ?string $tableName = null;
+
+    /** The database connector. */
+    private PDO $pdo;
+
+    /** @var self::FORMAT_* The default embed data format. */
+    private string $format = self::FORMAT_ARRAY;
 
     /**
-     * The database connector.
-     *
-     * @var PDO
+     * @param array<string, mixed> $options
      */
-    private $pdo;
+    public function __construct(
+        PDO $pdo,
+        LoggerInterface $logger,
+        array $options = []
+    ) {
+        $this->pdo = $pdo;
 
-    /**
-     * The default embed data format.
-     *
-     * @var self::FORMAT_*
-     */
-    private $format = self::FORMAT_ARRAY;
+        $this->setLogger($logger);
 
-    // INIT
-    // ==========================================================================
-
-    /**
-     * @param  array $data Dependencies.
-     * @throws Exception If missing dependencies.
-     * @return self
-     */
-    public function __construct(array $data)
-    {
-        $this->pdo = $data['pdo'];
-
-        $this->setLogger($data['logger']);
-
-        $config = $data['embed_config'];
-        if ($config && is_array($config)) {
-            foreach ($config as $key => $value) {
-                if (property_exists($this, $key)) {
-                    $this->{$key} = $value;
-                }
+        foreach ($options as $key => $value) {
+            if (property_exists($this, $key)) {
+                $this->{$key} = $value;
             }
         }
     }
 
-    // Methods
+    // Database Source
     // ==========================================================================
 
     /**
-     * @param  string  $ident  The embed ident to save from.
-     * @param  ?string $format The embed format (null, src, array) @see{Charcoal\Embed\Mixin\EmbedAwareTrait}.
      * @return mixed
      */
-    public function saveEmbedData($ident, $format = null)
+    public function saveEmbedData(string $ident, ?string $format = null)
     {
+        if ($ident === '') {
+            return null;
+        }
+
         // Check if exist to know if we have to save or update.
-        $item = $this->load($ident);
+        $item = $this->loadItem($ident);
 
         // Run through embed service.
         $embedItem = $this->processEmbed($ident);
@@ -116,96 +104,108 @@ class EmbedRepository implements
     }
 
     /**
-     * @param  string $ident The embed ident to process.
-     * @return array
+     * @return mixed
      */
-    private function processEmbed($ident)
+    public function getEmbedData(string $ident, ?string $format = null)
+    {
+        if ($ident === '') {
+            return null;
+        }
+
+        $item = $this->load($ident);
+        if (empty($item['embed_data'])) {
+            return $this->saveEmbedData($ident, $format);
+        }
+
+        if (is_string($item['embed_data'])) {
+            return (array) json_decode($item['embed_data'], true);
+        }
+
+        if ($format) {
+            return $this->formatEmbedData($item['embed_data'], $format);
+        }
+
+        return $item['embed_data'];
+    }
+
+    /**
+     * Alias of {@see self::getEmbedData()}.
+     */
+    public function embedData(string $ident, ?string $format = null)
+    {
+        return $this->getEmbedData($ident, $format);
+    }
+
+    /**
+     * @param  string $ident The embed ident to process.
+     * @return array{ident: string, embed_data: array<string, mixed>, last_update_data: string}
+     */
+    private function processEmbed(string $ident): array
     {
         return [
             'ident'            => $ident,
             'embed_data'       => $this->resolveEmbedFormat($ident, self::FORMAT_ARRAY),
-            'last_update_date' => (new DateTime())->format('Y-m-d H:i:s'),
+            'last_update_date' => (new DateTimeImmutable())->format('Y-m-d H:i:s'),
         ];
     }
 
     /**
-     * Retrieve the database connector.
+     * Execute an SQL query and return the PDOStatement if successful.
      *
-     * @throws RuntimeException If the database was not set.
-     * @return PDO
+     * @param  string                      $query The SQL query to executed.
+     * @param  array<string, mixed>        $binds Optional. Query parameter binds.
+     * @param  array<string, PDO::PARAM_*> $types Optional. Types of parameter bindings.
      */
-    private function db()
+    private function dbQuery(string $query, array $binds = [], array $types = []): ?PDOStatement
     {
-        if ($this->pdo === null) {
-            throw new RuntimeException(
-                'Database Connector was not set.'
+        $this->logger->debug($query, $binds);
+        $sth = $this->pdo->prepare($query);
+        if (!$sth) {
+            return null;
+        }
+
+        foreach ($binds as $key => $val) {
+            if ($val === null) {
+                $types[$key] = PDO::PARAM_NULL;
+            } elseif (!is_scalar($val)) {
+                $val = json_encode($val);
+            }
+
+            $sth->bindParam(
+                ":{$key}",
+                $val,
+                ($types[$key] ?? PDO::PARAM_STR)
             );
         }
 
-        return $this->pdo;
-    }
-
-    /**
-     * Execute a SQL query, with PDO, and returns the PDOStatement.
-     *
-     * If the query fails, this method will return false.
-     *
-     * @param  string $query The SQL query to executed.
-     * @param  array  $binds Optional. Query parameter binds.
-     * @param  array  $types Optional. Types of parameter bindings.
-     * @return \PDOStatement|false The PDOStatement, otherwise FALSE.
-     */
-    private function dbQuery($query, array $binds = [], array $types = [])
-    {
-        $this->logger->debug($query, $binds);
-        $sth = $this->db()->prepare($query);
-        if (!$sth) {
-            return false;
-        }
-
-        if (!empty($binds)) {
-            foreach ($binds as $key => $val) {
-                if ($binds[$key] === null) {
-                    $types[$key] = PDO::PARAM_NULL;
-                } elseif (!is_scalar($binds[$key])) {
-                    $binds[$key] = json_encode($binds[$key]);
-                }
-                $type  = (isset($types[$key]) ? $types[$key] : PDO::PARAM_STR);
-                $param = ':' . $key;
-                $sth->bindParam($param, $binds[$key], $type);
-            }
-        }
-
-        $result = $sth->execute();
-        if ($result === false) {
-            return false;
-        }
-
-        return $sth;
+        return $sth->execute() ? $sth : null;
     }
 
     /**
      * Create a table from a model's metadata.
      *
-     * @return boolean TRUE if the table was created, otherwise FALSE.
+     * @throws PDOException If the database table could not be created.
+     * @return true TRUE if the table was created, otherwise FALSE.
      */
-    private function createTable()
+    private function createTable(): bool
     {
         if ($this->tableExists() === true) {
             return true;
         }
 
-        $dbh    = $this->db();
+        $dbh    = $this->pdo;
         $driver = $dbh->getAttribute(PDO::ATTR_DRIVER_NAME);
-        $table  = $this->table();
+        $table  = $this->getTableName();
         $engine = '';
 
-        $query = 'CREATE TABLE %table (
-                        `ident` varchar(255) NOT NULL DEFAULT \'\',
-                        `embed_data` text,
-                        `last_update_date` datetime,
-                        PRIMARY KEY (`ident`)
-                    ) %engine';
+        $query = <<<'SQL'
+            CREATE TABLE `%table` (
+                `ident` VARCHAR(255) NOT NULL DEFAULT "",
+                `embed_data` TEXT,
+                `last_update_date` DATETIME,
+                PRIMARY KEY (`ident`)
+            ) %engine
+            SQL;
 
         /** @todo Add indexes for all defined list constraints (yea... tough job...) */
         if ($driver === self::MYSQL_DRIVER_NAME) {
@@ -218,7 +218,11 @@ class EmbedRepository implements
         ]);
 
         $this->logger->debug($query);
-        $dbh->query($query);
+        if (!$dbh->query($query)) {
+            throw new PDOException(
+                'Could not create embed database table'
+            );
+        }
 
         return true;
     }
@@ -226,12 +230,12 @@ class EmbedRepository implements
     /**
      * Determine if the source table exists.
      *
-     * @return boolean TRUE if the table exists, otherwise FALSE.
+     * @return bool TRUE if the table exists, otherwise FALSE.
      */
-    private function tableExists()
+    private function tableExists(): bool
     {
-        $dbh    = $this->db();
-        $table  = $this->table();
+        $dbh    = $this->pdo;
+        $table  = $this->getTableName();
         $driver = $dbh->getAttribute(PDO::ATTR_DRIVER_NAME);
         if ($driver === self::SQLITE_DRIVER_NAME) {
             $query = sprintf(
@@ -246,18 +250,18 @@ class EmbedRepository implements
         $sth    = $dbh->query($query);
         $exists = $sth->fetchColumn(0);
 
-        return !!$exists;
+        return (bool) $exists;
     }
 
     /**
      * Get the table columns information.
      *
-     * @return array An associative array.
+     * @return array<string, mixed>
      */
-    private function tableStructure()
+    private function tableStructure(): array
     {
-        $dbh    = $this->db();
-        $table  = $this->table();
+        $dbh    = $this->pdo;
+        $table  = $this->getTableName();
         $driver = $dbh->getAttribute(PDO::ATTR_DRIVER_NAME);
         if ($driver === self::SQLITE_DRIVER_NAME) {
             $query = sprintf('PRAGMA table_info("%s") ', $table);
@@ -283,26 +287,25 @@ class EmbedRepository implements
             }
 
             return $struct;
-        } else {
-            return $cols;
         }
+
+        return $cols;
     }
 
     /**
-     * Save an item (create a new row) in storage.
+     * Save an embed record.
      *
-     * @param  array|mixed $item The object to save.
-     * @throws PDOException If a database error occurs.
-     * @return mixed The created item ID, otherwise FALSE.
+     * @param  array<string, mixed> $item The embed record to save.
+     * @throws PDOException If the record can not be saved.
+     * @return string The created item ID, otherwise FALSE.
      */
-    private function saveItem($item)
+    private function saveItem(array $item)
     {
-        if ($this->tableExists() === false) {
-            /** @todo Optionnally turn off for some models */
+        if (!$this->tableExists()) {
             $this->createTable();
         }
 
-        $table  = $this->table();
+        $table  = $this->getTableName();
         $struct = array_keys($this->tableStructure());
 
         $keys   = [];
@@ -311,43 +314,90 @@ class EmbedRepository implements
 
         foreach ($item as $key => $value) {
             if (in_array($key, $struct)) {
-                $keys[]      = '`' . $key . '`';
-                $values[]    = ':' . $key;
+                $keys[]      = "`{$key}`";
+                $values[]    = ":{$key}";
                 $binds[$key] = $value;
             }
         }
-        $query = 'INSERT INTO %table (%keys) VALUES (%values)';
+        $query = 'INSERT INTO `%table` (%keys) VALUES (%values)';
         $query = strtr($query, [
             '%table'  => $table,
             '%keys'   => implode(', ', $keys),
             '%values' => implode(', ', $values),
         ]);
 
-        $result = $this->dbQuery($query, $binds);
-
-        if ($result === false) {
-            throw new PDOException('Could not save item.');
-        } else {
-            return $this->db()->lastInsertId();
+        if (!$this->dbQuery($query, $binds)) {
+            throw new PDOException(
+                "Could not save embed record for URL: {$item['ident']}"
+            );
         }
+
+        $id = $this->pdo->lastInsertId();
+        if ($id === false) {
+            throw new PDOException(
+                "Could not retrieve ID of saved embed record for URL: {$item['ident']}"
+            );
+        }
+
+        return $id;
     }
 
     /**
-     * Load item by the primary column.
+     * Update an embed record.
      *
-     * @param  mixed $ident Ident can be any scalar value.
-     * @throws PDOException When query fails.
-     * @return array
+     * @param  array<string, mixed> $item The object to save.
+     * @throws PDOException If the record ca not be updated.
+     * @return bool TRUE if the item was updated, otherwise FALSE.
      */
-    private function loadItem($ident)
+    private function updateItem(array $item): bool
     {
         if ($this->tableExists() === false) {
             /** @todo Optionnally turn off for some models */
             $this->createTable();
         }
 
-        $table = $this->table();
-        $query = 'SELECT * FROM %table WHERE `ident` = :ident LIMIT 1';
+        $table  = $this->getTableName();
+        $struct = array_keys($this->tableStructure());
+
+        $updates = [];
+        $binds   = [];
+
+        foreach ($item as $key => $value) {
+            if (in_array($key, $struct)) {
+                $updates[]   = sprintf('`%1$s` = :%1$s', $key);
+                $binds[$key] = $value;
+            }
+        }
+        $query = 'UPDATE `%table` SET %updates WHERE `ident` = :ident';
+        $query = strtr($query, [
+            '%table'   => $table,
+            '%updates' => implode(', ', $updates),
+        ]);
+
+        if (!$this->dbQuery($query, $binds)) {
+            throw new PDOException(
+                "Could not update embed record for URL: {$item['ident']}"
+            );
+        }
+
+        return true;
+    }
+
+    /**
+     * Load an embed record by its URI.
+     *
+     * @param  string $ident The embed URI to lookup.
+     * @throws PDOException If the record can not be retrieved.
+     * @return ?array<string, mixed>
+     */
+    private function loadItem(string $ident): ?array
+    {
+        if ($this->tableExists() === false) {
+            return null;
+        }
+
+        $table = $this->getTableName();
+        $query = 'SELECT * FROM `%table` WHERE `ident` = :ident LIMIT 1';
         $query = strtr($query, [
             '%table' => $table,
         ]);
@@ -356,162 +406,78 @@ class EmbedRepository implements
             'ident' => $ident,
         ];
 
-        $sth = $this->dbQuery($query, $binds);
-        if ($sth === false) {
-            throw new PDOException('Could not load item.');
-        }
-
-        $data = $sth->fetch(PDO::FETCH_ASSOC);
-
-        return $data;
-    }
-
-    /**
-     * Update an item (update a row) in storage.
-     *
-     * @param  array|mixed $item The object to save.
-     * @throws PDOException If a database error occurs.
-     * @return mixed The created item ID, otherwise FALSE.
-     */
-    public function updateItem($item)
-    {
-        if ($this->tableExists() === false) {
-            /** @todo Optionnally turn off for some models */
-            $this->createTable();
-        }
-
-        $table  = $this->table();
-        $struct = array_keys($this->tableStructure());
-
-        $updates = [];
-        $binds   = [];
-
-        foreach ($item as $key => $value) {
-            if (in_array($key, $struct)) {
-                $updates[]   = sprintf('`%1$s`=:%1$s', $key);
-                $binds[$key] = $value;
-            }
-        }
-        $query = 'UPDATE %table SET %updates WHERE `ident` = :ident';
-        $query = strtr($query, [
-            '%table'   => $table,
-            '%updates' => implode(', ', $updates),
-        ]);
-
         $result = $this->dbQuery($query, $binds);
-
-        if ($result === false) {
-            throw new PDOException('Could not update item.');
-        } else {
-            return $this->db()->lastInsertId();
+        if (!$result) {
+            throw new PDOException(
+                "Could not retrieve embed record for URL: {$ident}"
+            );
         }
+
+        return $result->fetch(PDO::FETCH_ASSOC);
     }
 
     /**
-     * @param  string  $ident The embed url to load data from.
-     * @param  ?string $format The embed format (null, src, array) @see{Charcoal\Embed\Mixin\EmbedAwareTrait}.
-     * @return mixed
+     * @param  string $ident The embed data ident to load.
+     * @return ?array<string, mixed>
      */
-    public function embedData($ident, $format = null)
-    {
-        if ($ident === '') {
-            return false;
-        }
-
-        $item = $this->load($ident);
-        if (empty($item['embed_data'])) {
-            return $this->saveEmbedData($ident, $format);
-        }
-
-        if (is_string($item['embed_data'])) {
-            return (array) json_decode($item['embed_data'], true);
-        }
-
-        if ($format) {
-            return $this->formatEmbedData($item['embed_data'], $format);
-        }
-
-        return $item['embed_data'];
-    }
-
-    /**
-     * @param  string  $ident The embed data ident to load.
-     * @return mixed
-     */
-    public function load($ident)
+    public function load(string $ident): ?array
     {
         return $this->loadItem($ident);
     }
 
 
-    // GETTERS & SETTERS
+    // Options
     // ==========================================================================
 
     /**
      * Get the database's current table.
-     *
-     * @return string
      */
-    public function table()
+    public function getTableName(): string
     {
-        if ($this->table === null) {
-            $this->table = self::DEFAULT_TABLE;
-        }
-
-        return $this->table;
+        return $this->tableName ??= self::DEFAULT_TABLE_NAME;
     }
 
     /**
-     * @param  string $table Table for EmbedRepository.
-     * @throws InvalidArgumentException When $table is not a string.
-     * @return self
+     * @throws InvalidArgumentException When table name is invalid.
+     * @return static
      */
-    public function setTable($table)
+    public function setTableName(string $name)
     {
-        if (!is_string($table)) {
-            throw new InvalidArgumentException(sprintf(
-                'DatabaseSource::setTable() expects a string as table. (%s given).',
-                gettype($table)
-            ));
-        }
-
         /**
          * For security reason, only alphanumeric characters (+ underscores)
          * are valid table names; Although SQL can support more,
          * there's really no reason to.
          */
-        if (!preg_match('/[A-Za-z0-9_]/', $table)) {
-            throw new InvalidArgumentException(sprintf(
-                'Table name "%s" is invalid: must be alphanumeric / underscore.',
-                $table
-            ));
+        if (!preg_match('/^\w+$/', $name)) {
+            throw new InvalidArgumentException(
+                "Expected a table name containing alphanumeric characters, received '{$name}'",
+            );
         }
 
-        $this->table = $table;
+        $this->tableName = $name;
 
         return $this;
     }
 
     /**
-     * Determine if a table is assigned.
-     *
-     * @return boolean
+     * Alias of {@see self::setTableName()}
      */
-    public function hasTable()
+    public function setTable(string $table)
     {
-        return !empty($this->table);
+        $this->setTableName($table);
+
+        return $this;
     }
 
-    public function format()
+    public function getFormat(): string
     {
         return $this->format;
     }
 
     /**
-     * @param  string $format The default embed format.
-     * @return self
+     * @return static
      */
-    public function setFormat($format)
+    public function setFormat(string $format)
     {
         $this->assertValidFormat($format);
 
@@ -520,7 +486,11 @@ class EmbedRepository implements
         return $this;
     }
 
-    public function isValidFormat($format)
+
+    // Formatting
+    // ==========================================================================
+
+    public function isValidFormat(string $format): bool
     {
         switch ($format) {
             case self::FORMAT_ARRAY:
@@ -532,39 +502,36 @@ class EmbedRepository implements
         return false;
     }
 
-    public function assertValidFormat($format)
+    /**
+     * Asserts that the embed format is valid, otherwise throws an exception.
+     *
+     * @throws InvalidArgumentException If the format is unsupported.
+     */
+    public function assertValidFormat(string $format): void
     {
-        if (!is_string($format)) {
-            throw new InvalidArgumentException(sprintf(
-                'Unsupported format; must be a string, received %s',
-                (is_object($format) ? get_class($format) : gettype($format))
-            ));
-        }
-
         if (!$this->isValidFormat($format)) {
-            throw new InvalidArgumentException(sprintf(
-                'Unsupported embed format, received %s',
-                $format
-            ));
+            throw new InvalidArgumentException(
+                "Unsupported embed format, received {$format}"
+            );
         }
     }
 
     /**
      * @return array<string, mixed>|string|null Returns the corresponding formatted embed.
      */
-    public function formatEmbedData(array $data, $format = null)
+    public function formatEmbedData(array $data, ?string $format = null)
     {
-        switch ($format ?: $this->format()) {
+        switch ($format ?: $this->getFormat()) {
             case self::FORMAT_ARRAY: {
                 return $data;
             }
 
             case self::FORMAT_HTML: {
-                return empty($data['iframe']) ? null : $data['iframe'];
+                return $data['iframe'] ?? null;
             }
 
             case self::FORMAT_SRC: {
-                return empty($data['src']) ? null : $data['src'];
+                return $data['src'] ?? null;
             }
         }
 

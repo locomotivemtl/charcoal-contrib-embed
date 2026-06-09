@@ -14,12 +14,11 @@ class EmbedModule extends AbstractModule
     const APP_CONFIG   = 'vendor/locomotivemtl/charcoal-contrib-embed/config/config.json';
 
     /**
-     * Setup the module's dependencies.
-     *
-     * @return AbstractModule
+     * @return static
      */
     public function setup()
     {
+        /** @var \Pimple\Container */
         $container = $this->app()->getContainer();
 
         $embedServiceProvider = new EmbedServiceProvider();
