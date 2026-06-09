@@ -3,7 +3,7 @@
 namespace Charcoal\Embed\Service;
 
 use Charcoal\Embed\Contract\EmbedRepositoryInterface;
-use Charcoal\Embed\Mixin\EmbedAwareTrait;
+use Charcoal\Embed\Mixin\EmbedResolverTrait;
 use DateTimeImmutable;
 use InvalidArgumentException;
 use PDO;
@@ -24,7 +24,7 @@ class EmbedRepository implements
     LoggerAwareInterface
 {
     use LoggerAwareTrait;
-    use EmbedAwareTrait;
+    use EmbedResolverTrait;
 
     const DEFAULT_TABLE_NAME = 'embed_cache';
 
@@ -46,14 +46,19 @@ class EmbedRepository implements
     /** @var self::FORMAT_* The default embed data format. */
     private string $format = self::FORMAT_ARRAY;
 
+    /** The embed resolver. */
+    private EmbedResolver $resolver;
+
     /**
      * @param array<string, mixed> $options
      */
     public function __construct(
+        EmbedResolver $resolver,
         PDO $pdo,
         LoggerInterface $logger,
         array $options = []
     ) {
+        $this->resolver = $resolver;
         $this->pdo = $pdo;
 
         $this->setLogger($logger);
@@ -63,6 +68,11 @@ class EmbedRepository implements
                 $this->{$key} = $value;
             }
         }
+    }
+
+    public function getResolver(): EmbedResolver
+    {
+        return $this->resolver;
     }
 
     // Database Source
@@ -128,7 +138,7 @@ class EmbedRepository implements
     {
         return [
             'ident'            => $url,
-            'embed_data'       => $this->resolveEmbedFormat($url, self::FORMAT_ARRAY),
+            'embed_data'       => $this->getResolver()->fetchData($url),
             'last_update_date' => (new DateTimeImmutable())->format('Y-m-d H:i:s'),
         ];
     }

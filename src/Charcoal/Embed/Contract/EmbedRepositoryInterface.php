@@ -2,6 +2,8 @@
 
 namespace Charcoal\Embed\Contract;
 
+use Charcoal\Embed\Service\EmbedResolver;
+
 /**
  * Embed Repository Interface
  */
@@ -9,7 +11,13 @@ interface EmbedRepositoryInterface
 {
     public const FORMAT_ARRAY = 'array';
     public const FORMAT_HTML  = 'html';
+    public const FORMAT_RAW   = 'raw';
     public const FORMAT_SRC   = 'src';
+
+    /**
+     * Retrieves the embed resolver.
+     */
+    public function getResolver(): EmbedResolver;
 
     /**
      * Processes the URL, saves the embed data to the database,
