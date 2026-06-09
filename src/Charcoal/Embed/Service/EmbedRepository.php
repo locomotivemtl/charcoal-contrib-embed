@@ -38,6 +38,9 @@ class EmbedRepository implements
     /** Recall if table exists. */
     private ?bool $tableExists = null;
 
+    /** Recall table structure. */
+    private ?array $tableStructure = null;
+
     /** The database connector. */
     private PDO $pdo;
 
@@ -223,6 +226,7 @@ class EmbedRepository implements
         }
 
         $this->tableExists = true;
+        $this->tableStructure = null;
         return true;
     }
 
@@ -252,21 +256,11 @@ class EmbedRepository implements
     }
 
     /**
-     * Determine if the database table exists.
-     *
-     * @return bool TRUE if the table exists, otherwise FALSE.
-     */
-    private function tableExists(): bool
-    {
-        return $this->tableExists ??= $this->performTableExists();
-    }
-
-    /**
      * Get the table columns information.
      *
      * @return array<string, mixed>
      */
-    private function tableStructure(): array
+    private function performTableStructure(): array
     {
         $table  = $this->getTableName();
         $driver = $this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
@@ -286,9 +280,9 @@ class EmbedRepository implements
                 // Normalize SQLite's result (PRAGMA) with mysql's (SHOW COLUMNS)
                 $struct[$col['name']] = [
                     'Type'    => $col['type'],
-                    'Null'    => !!$col['notnull'] ? 'NO' : 'YES',
+                    'Null'    => $col['notnull'] ? 'NO' : 'YES',
                     'Default' => $col['dflt_value'],
-                    'Key'     => !!$col['pk'] ? 'PRI' : '',
+                    'Key'     => $col['pk'] ? 'PRI' : '',
                     'Extra'   => '',
                 ];
             }
@@ -297,6 +291,26 @@ class EmbedRepository implements
         }
 
         return $cols;
+    }
+
+    /**
+     * Determine if the database table exists.
+     *
+     * @return bool TRUE if the table exists, otherwise FALSE.
+     */
+    private function tableExists(): bool
+    {
+        return $this->tableExists ??= $this->performTableExists();
+    }
+
+    /**
+     * Get the table columns information.
+     *
+     * @return array<string, mixed>
+     */
+    private function tableStructure(): array
+    {
+        return $this->tableStructure ??= $this->performTableStructure();
     }
 
     /**
@@ -463,6 +477,7 @@ class EmbedRepository implements
 
         $this->tableName = $name;
         $this->tableExists = null;
+        $this->tableStructure = null;
 
         return $this;
     }
