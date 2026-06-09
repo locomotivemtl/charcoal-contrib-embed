@@ -73,14 +73,14 @@ trait EmbedAwareTrait
             return null;
         }
 
-        $embed = Embed::create($url);
+        $embed = (new Embed())->get($url);
 
-        if (empty($embed->code)) {
+        if (empty($embed->code->html)) {
             return null;
         }
 
         // Strip width/height from iframe.
-        $iframe = preg_replace('~\s*(width|height)=["\'][^"\']+["\']~', '', $embed->code);
+        $iframe = preg_replace('~\s*(width|height)=["\'][^"\']+["\']~', '', $embed->code->html);
 
         // Fix unencoded ampersands
         $iframe = preg_replace('~&(?!amp;)~i', '&amp;', $iframe);
@@ -116,13 +116,6 @@ trait EmbedAwareTrait
 
             switch ($provider) {
                 case 'youtube': {
-                    if (count($embed->images) > 1) {
-                        // The largest image available for YouTube will be near the end of the images array.
-                        // However, the last image image is some kind of tracking pixel.
-                        $images = array_slice($embed->images, 0, -1);
-                        $image  = array_pop($images)['url'];
-                    }
-
                     $regExp = '!^(?:https?://)?(?:.+\.)?(?:youtube(?:-nocookie)?\.com\/(?:(?:v|e(?:mbed)?)/|watch/|[^/\s]+\/.+/|.*[?&]v=)|youtu\.be/)(?<playback_id>[\w\-]{11})!i';
                     if (preg_match($regExp, $url, $match)) {
                         $id = $match['playback_id'];
@@ -131,25 +124,6 @@ trait EmbedAwareTrait
                 }
 
                 case 'vimeo': {
-                    if (count($embed->images) > 1) {
-                        // Vimeo sticks an overlay on their best quality image. Find the width, and replace it on the
-                        // smaller image (without an overlay).
-                        $smallImage = $embed->images[0];
-                        $largeImage = array_pop($embed->images);
-
-                        if ($largeImage) {
-                            $image = preg_replace(
-                                '/_(\d+)?(x)?(\d+)?\.[\w-]+$/',
-                                sprintf(
-                                    '_%sx%s.jpg',
-                                    $largeImage['width'],
-                                    $largeImage['height']
-                                ),
-                                $smallImage['url']
-                            );
-                        }
-                    }
-
                     $regExp = '!^(?:https?://)?(?:.+\.)?vimeo\.com/(?:(?:progressive_redirect/playback|video)/)?(?<playback_id>\d+)!i';
                     if (preg_match($regExp, $url, $match)) {
                         $id = $match['playback_id'];

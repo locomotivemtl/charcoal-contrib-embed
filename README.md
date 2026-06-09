@@ -21,7 +21,7 @@ $ composer require locomotivemtl/charcoal-contrib-embed
 * **[locomotivemtl/charcoal-app]** : v0.8+
 * **[locomotivemtl/charcoal-property]** : v0.8+
 * **[guzzlehttp/psr7]** : v2.11
-* **[embed/embed]** : v3.4
+* **[embed/embed]** : v4
 
 ## Service Provider
 

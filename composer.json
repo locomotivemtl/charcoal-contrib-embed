@@ -22,7 +22,7 @@
     },
     "require": {
         "php": "^7.4 || ^8.0",
-        "embed/embed": "^3.4",
+        "embed/embed": "^4.0",
         "guzzlehttp/psr7": "^2.11",
         "locomotivemtl/charcoal-app": "~0.8",
         "locomotivemtl/charcoal-property": "~0.8",
