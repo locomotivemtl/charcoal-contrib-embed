@@ -13,7 +13,6 @@ use GuzzleHttp\Promise\Utils;
 use InvalidArgumentException;
 use PDO;
 use PDOException;
-use Psr\Cache\CacheItemPoolInterface;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use RuntimeException;
@@ -52,13 +51,6 @@ class EmbedRepository extends AbstractEntity implements
      * @var mixed
      */
     private $baseUrl;
-
-    /**
-     * The PSR-6 caching service.
-     *
-     * @var CacheItemPoolInterface
-     */
-    private $cachePool;
 
     /**
      * @var integer $ttl
@@ -451,27 +443,12 @@ class EmbedRepository extends AbstractEntity implements
     }
 
     /**
-     * @param  string  $ident      The embed data ident to load.
-     * @param  boolean $useCache   If FALSE, ignore the cached object. Defaults to TRUE.
-     * @param  boolean $reloadData If TRUE, refresh the cached object. Defaults to FALSE.
+     * @param  string  $ident The embed data ident to load.
      * @return mixed
      */
-    public function load($ident, $useCache = true, $reloadData = false)
+    public function load($ident)
     {
         return $this->loadItem($ident);
-    }
-
-    /**
-     * Generate a cache key.
-     *
-     * @param  string|integer $ident The object identifier to load.
-     * @return string
-     */
-    private function cacheKey($ident)
-    {
-        $cacheKey = 'embed/' . parse_url($ident);
-
-        return $cacheKey;
     }
 
     /**
