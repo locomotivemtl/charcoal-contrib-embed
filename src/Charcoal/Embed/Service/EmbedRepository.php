@@ -495,35 +495,6 @@ class EmbedRepository extends AbstractEntity implements
         }
     }
 
-    // Magic Methods
-    // =============================================================================================
-
-    /**
-     * Retrieve an object by its key.
-     *
-     * @param  string|integer $ident The object identifier to load.
-     * @param  mixed          $args  Unused; Method arguments.
-     * @return array
-     */
-    public function __call($ident, $args = null)
-    {
-        unset($args);
-
-        return $this->load($ident);
-    }
-
-    /**
-     * Retrieve an object by its key.
-     *
-     * @param  string|integer $ident The object identifier to load.
-     * @return array
-     */
-    public function __get($ident)
-    {
-        return $this->load($ident);
-    }
-
-
     // GETTERS & SETTERS
     // ==========================================================================
 
