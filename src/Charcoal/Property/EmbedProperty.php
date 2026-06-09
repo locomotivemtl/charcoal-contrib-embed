@@ -3,11 +3,9 @@
 namespace Charcoal\Property;
 
 use Charcoal\Embed\Mixin\EmbedRepositoryTrait;
-use Charcoal\Embed\Service\EmbedRepository;
 use Charcoal\Property\UrlProperty;
 use Charcoal\Translator\Translation;
 use Pimple\Container;
-use RuntimeException;
 
 /**
  * Embed Property
@@ -16,10 +14,8 @@ class EmbedProperty extends UrlProperty
 {
     use EmbedRepositoryTrait;
 
-    /**
-     * @var string|null $embedFormat
-     */
-    protected $embedFormat = EmbedRepository::FORMAT_ARRAY;
+    /** @var ?string The default format of embed data. */
+    protected $embedFormat = null;
 
     /**
      * @param  Container $container A Pimple DI container.
@@ -33,20 +29,26 @@ class EmbedProperty extends UrlProperty
     }
 
     /**
-     * @return string|null
+     * @return string
      */
     public function embedFormat()
     {
-        return $this->embedFormat;
+        if ($this->embedFormat) {
+            return $this->embedFormat;
+        }
+
+        return $this->embedRepository()->format();
     }
 
     /**
-     * @param  string|null $format The embed value return format.
+     * @param  ?string $format The embed value return format.
      * @return self
      */
     public function setEmbedFormat($format)
     {
-        $this->embedRepository()->assertValidFormat($format);
+        if (is_string($format)) {
+            $this->embedRepository()->assertValidFormat($format);
+        }
 
         $this->embedFormat = $format;
 
@@ -67,6 +69,12 @@ class EmbedProperty extends UrlProperty
             });
         }
 
+        if (is_array($val)) {
+            return array_map(function ($v) {
+                return $this->saveEmbedData($v);
+            }, $val);
+        }
+
         return $this->saveEmbedData($val);
     }
 
@@ -76,8 +84,8 @@ class EmbedProperty extends UrlProperty
      */
     private function saveEmbedData($val)
     {
-        if (!empty($val)) {
-            $this->embedRepository()->saveEmbedData($val, $this->embedFormat());
+        if ($val) {
+            $this->embedRepository()->saveEmbedData($val);
         }
 
         return $val;

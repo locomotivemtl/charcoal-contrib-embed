@@ -61,7 +61,7 @@ trait EmbedAwareTrait
      * @param  string|null $format The format in which to return the embed. Defaults to 'iframe'.
      * @return array|string|null Returns a string of HTML or the URL of the source object.
      */
-    private function resolveEmbedFormat($url, $format = null)
+    protected function resolveEmbedFormat($url, $format = null)
     {
         if (is_string($url)) {
             $url = trim($url);

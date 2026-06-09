@@ -17,6 +17,7 @@ use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use RuntimeException;
 use Throwable;
+use UnexpectedValueException;
 
 /**
  * Embed Repository
@@ -58,16 +59,11 @@ class EmbedRepository extends AbstractEntity implements
     private $ttl = 3600;
 
     /**
-     * Embed data format.
+     * The default embed data format.
      *
-     * Choices:
-     *  - array
-     *  - src
-     *  - NULL
-     *
-     * @var string
+     * @var self::FORMAT_*
      */
-    private $format;
+    private $format = self::FORMAT_ARRAY;
 
     // INIT
     // ==========================================================================
@@ -95,8 +91,8 @@ class EmbedRepository extends AbstractEntity implements
     // ==========================================================================
 
     /**
-     * @param  string $ident  The embed ident to save from.
-     * @param  string $format The embed format (null, src, array) @see{Charcoal\Embed\Mixin\EmbedAwareTrait}.
+     * @param  string  $ident  The embed ident to save from.
+     * @param  ?string $format The embed format (null, src, array) @see{Charcoal\Embed\Mixin\EmbedAwareTrait}.
      * @return mixed
      */
     public function saveEmbedData($ident, $format = null)
@@ -105,27 +101,42 @@ class EmbedRepository extends AbstractEntity implements
         $item = $this->load($ident);
 
         // Run through embed service.
-        $embedItem = $this->processEmbed($ident, $format);
+        $embedItem = $this->processEmbed($ident);
 
         if ($item) {
+            if (empty($embedItem['embed_data'])) {
+                throw new UnexpectedValueException(
+                    "Could not update item {$embedItem['ident']}"
+                );
+            }
+
             $this->updateItem($embedItem);
         } else {
+            if (empty($embedItem['embed_data'])) {
+                throw new UnexpectedValueException(
+                    "Could not save item {$embedItem['ident']}"
+                );
+            }
+
             $this->saveItem($embedItem);
         }
 
-        return $embedItem;
+        if ($format) {
+            return $this->formatEmbedData($embedItem['embed_data'], $format);
+        }
+
+        return $embedItem['embed_data'];
     }
 
     /**
-     * @param  string $ident  The embed ident to process.
-     * @param  string $format The embed format (null, src, array) @see{Charcoal\Embed\Mixin\EmbedAwareTrait}.
+     * @param  string $ident The embed ident to process.
      * @return array
      */
-    private function processEmbed($ident, $format = null)
+    private function processEmbed($ident)
     {
         return [
             'ident'            => $ident,
-            'embed_data'       => $this->formatEmbed($ident, $format),
+            'embed_data'       => $this->resolveEmbedFormat($ident, self::FORMAT_ARRAY),
             'last_update_date' => (new DateTime())->format('Y-m-d H:i:s'),
         ];
     }
@@ -377,10 +388,6 @@ class EmbedRepository extends AbstractEntity implements
      */
     public function updateItem($item)
     {
-        if (!$item['embed_data'] || empty($item['embed_data'])) {
-           throw new Exception(sprintf('Could not update item %s. Please try again later', $item['ident']));
-        }
-
         if ($this->tableExists() === false) {
             /** @todo Optionnally turn off for some models */
             $this->createTable();
@@ -414,32 +421,30 @@ class EmbedRepository extends AbstractEntity implements
     }
 
     /**
-     * @param  string $ident The embed url to load data from.
-     * @return boolean|mixed
+     * @param  string  $ident The embed url to load data from.
+     * @param  ?string $format The embed format (null, src, array) @see{Charcoal\Embed\Mixin\EmbedAwareTrait}.
+     * @return mixed
      */
-    public function embedData($ident)
+    public function embedData($ident, $format = null)
     {
         if ($ident === '') {
             return false;
         }
 
         $item = $this->load($ident);
-        if ($item === false) {
-            $item = $this->processEmbed($ident, self::FORMAT_ARRAY);
-            $this->saveItem($item);
+        if (empty($item['embed_data'])) {
+            return $this->saveEmbedData($ident, $format);
         }
 
-        if (isset($item['embed_data'])) {
-            if (is_string($item['embed_data'])) {
-                $data = json_decode($item['embed_data'], true);
-            } else {
-                $data = $item['embed_data'];
-            }
-
-            return $data;
+        if (is_string($item['embed_data'])) {
+            return (array) json_decode($item['embed_data'], true);
         }
 
-        return false;
+        if ($format) {
+            return $this->formatEmbedData($item['embed_data'], $format);
+        }
+
+        return $item['embed_data'];
     }
 
     /**
@@ -572,16 +577,13 @@ class EmbedRepository extends AbstractEntity implements
         return $this;
     }
 
-    /**
-     * @return string
-     */
     public function format()
     {
         return $this->format;
     }
 
     /**
-     * @param  string $format The embed format.
+     * @param  string $format The default embed format.
      * @return self
      */
     public function setFormat($format)
@@ -593,12 +595,6 @@ class EmbedRepository extends AbstractEntity implements
         return $this;
     }
 
-    /**
-     * Determines if the embed format is valid.
-     *
-     * @param  string $format The format to test.
-     * @return boolean
-     */
     public function isValidFormat($format)
     {
         switch ($format) {
@@ -611,13 +607,6 @@ class EmbedRepository extends AbstractEntity implements
         return false;
     }
 
-    /**
-     * Asserts that the embed format is valid, throws an exception if not.
-     *
-     * @param  string $format The format to test.
-     * @throws InvalidArgumentException If the format is not a string or unsupported.
-     * @return void
-     */
     public function assertValidFormat($format)
     {
         if (!is_string($format)) {
@@ -629,9 +618,34 @@ class EmbedRepository extends AbstractEntity implements
 
         if (!$this->isValidFormat($format)) {
             throw new InvalidArgumentException(sprintf(
-                'Unsupported "%s" format',
+                'Unsupported embed format, received %s',
                 $format
             ));
         }
+    }
+
+    /**
+     * @return array<string, mixed>|string|null Returns the corresponding formatted embed.
+     */
+    public function formatEmbedData(array $data, $format = null)
+    {
+        switch ($format ?: $this->format()) {
+            case self::FORMAT_ARRAY: {
+                return $data;
+            }
+
+            case self::FORMAT_HTML: {
+                return empty($data['iframe']) ? null : $data['iframe'];
+            }
+
+            case self::FORMAT_SRC: {
+                return empty($data['src']) ? null : $data['src'];
+            }
+        }
+
+        throw new InvalidArgumentException(
+            "Unsupported embed format, received {$format}",
+            $format
+        );
     }
 }
