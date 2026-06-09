@@ -34,9 +34,7 @@ class UpdateEmbedDataAction extends AbstractAction
     {
         $ident = $request->getParam('ident');
 
-        $results = $this->embedRepository()->saveEmbedData($ident);
-
-        if ($results['ident']) {
+        if ($this->embedRepository()->saveEmbedData($ident)) {
             $this->setSuccess(true);
         }
 

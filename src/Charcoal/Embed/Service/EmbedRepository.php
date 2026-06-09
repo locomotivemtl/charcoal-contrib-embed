@@ -5,7 +5,6 @@ namespace Charcoal\Embed\Service;
 use Charcoal\Embed\Contract\EmbedRepositoryInterface;
 use Charcoal\Embed\Mixin\EmbedAwareTrait;
 use DateTimeImmutable;
-use Exception;
 use InvalidArgumentException;
 use PDO;
 use PDOException;
@@ -70,7 +69,7 @@ class EmbedRepository implements
     // ==========================================================================
 
     /**
-     * @return mixed
+     * @throws UnexpectedValueException If the embed data is invalid.
      */
     public function saveEmbedData(string $ident, ?string $format = null)
     {
@@ -78,47 +77,30 @@ class EmbedRepository implements
             return null;
         }
 
-        // Check if exist to know if we have to save or update.
-        $item = $this->loadItem($ident);
-
-        // Run through embed service.
-        $embedItem = $this->processEmbed($ident);
-
-        if ($item) {
-            if (empty($embedItem['embed_data'])) {
-                throw new UnexpectedValueException(
-                    "Could not update item {$embedItem['ident']}"
-                );
-            }
-
-            $this->updateItem($embedItem);
-        } else {
-            if (empty($embedItem['embed_data'])) {
-                throw new UnexpectedValueException(
-                    "Could not save item {$embedItem['ident']}"
-                );
-            }
-
-            $this->saveItem($embedItem);
+        $item = $this->processEmbed($ident);
+        if (empty($item['embed_data'])) {
+            throw new UnexpectedValueException(sprintf(
+                "Could not save embed record for URL: {$item['ident']}",
+                $item['ident']
+            ));
         }
+
+        $this->saveItem($item);
 
         if ($format) {
-            return $this->formatEmbedData($embedItem['embed_data'], $format);
+            return $this->formatEmbedData($item['embed_data'], $format);
         }
 
-        return $embedItem['embed_data'];
+        return $item['embed_data'];
     }
 
-    /**
-     * @return mixed
-     */
     public function getEmbedData(string $ident, ?string $format = null)
     {
         if ($ident === '') {
             return null;
         }
 
-        $item = $this->load($ident);
+        $item = $this->loadItem($url);
         if (empty($item['embed_data'])) {
             return $this->saveEmbedData($ident, $format);
         }
@@ -170,16 +152,16 @@ class EmbedRepository implements
             return null;
         }
 
-        foreach ($binds as $key => $val) {
-            if ($val === null) {
+        foreach ($binds as $key => $value) {
+            if ($value === null) {
                 $types[$key] = PDO::PARAM_NULL;
-            } elseif (!is_scalar($val)) {
-                $val = json_encode($val);
+            } elseif (!is_scalar($value)) {
+                $value = json_encode($value);
             }
 
-            $sth->bindParam(
+            $sth->bindValue(
                 ":{$key}",
-                $val,
+                $value,
                 ($types[$key] ?? PDO::PARAM_STR)
             );
         }
@@ -201,7 +183,7 @@ class EmbedRepository implements
 
         $query = <<<'SQL'
             CREATE TABLE IF NOT EXISTS `%table` (
-                `ident` VARCHAR(255) NOT NULL DEFAULT "",
+                `ident` VARCHAR(255) NOT NULL,
                 `embed_data` TEXT,
                 `last_update_date` DATETIME,
                 PRIMARY KEY (`ident`)
@@ -308,7 +290,7 @@ class EmbedRepository implements
      *
      * @return array<string, mixed>
      */
-    private function tableStructure(): array
+    private function getTableStructure(): array
     {
         return $this->tableStructure ??= $this->performTableStructure();
     }
@@ -318,86 +300,57 @@ class EmbedRepository implements
      *
      * @param  array<string, mixed> $item The embed record to save.
      * @throws PDOException If the record can not be saved.
-     * @return string The created item ID, otherwise FALSE.
+     * @return bool TRUE if the item was inserted or updated, otherwise FALSE.
      */
-    private function saveItem(array $item)
+    private function saveItem(array $item): bool
     {
         if (!$this->tableExists()) {
             $this->performCreateTable();
         }
 
         $table  = $this->getTableName();
-        $struct = array_keys($this->tableStructure());
+        $struct = $this->getTableStructure();
 
-        $keys   = [];
-        $values = [];
-        $binds  = [];
-
-        foreach ($item as $key => $value) {
-            if (in_array($key, $struct)) {
-                $keys[]      = "`{$key}`";
-                $values[]    = ":{$key}";
-                $binds[$key] = $value;
-            }
-        }
-        $query = 'INSERT INTO `%table` (%keys) VALUES (%values)';
-        $query = strtr($query, [
-            '%table'  => $table,
-            '%keys'   => implode(', ', $keys),
-            '%values' => implode(', ', $values),
-        ]);
-
-        if (!$this->dbQuery($query, $binds)) {
-            throw new PDOException(
-                "Could not save embed record for URL: {$item['ident']}"
-            );
-        }
-
-        $id = $this->pdo->lastInsertId();
-        if ($id === false) {
-            throw new PDOException(
-                "Could not retrieve ID of saved embed record for URL: {$item['ident']}"
-            );
-        }
-
-        return $id;
-    }
-
-    /**
-     * Update an embed record.
-     *
-     * @param  array<string, mixed> $item The object to save.
-     * @throws PDOException If the record ca not be updated.
-     * @return bool TRUE if the item was updated, otherwise FALSE.
-     */
-    private function updateItem(array $item): bool
-    {
-        if ($this->tableExists() === false) {
-            /** @todo Optionnally turn off for some models */
-            $this->createTable();
-        }
-
-        $table  = $this->getTableName();
-        $struct = array_keys($this->tableStructure());
-
+        $primary = null;
+        $keys    = [];
+        $inserts = [];
         $updates = [];
         $binds   = [];
 
         foreach ($item as $key => $value) {
-            if (in_array($key, $struct)) {
-                $updates[]   = sprintf('`%1$s` = :%1$s', $key);
-                $binds[$key] = $value;
+            if (empty($struct[$key])) {
+                continue;
+            }
+
+            $keys[]      = "`{$key}`";
+            $inserts[]   = ":{$key}";
+            $binds[$key] = $value;
+
+            if ($struct[$key]['Key'] === 'PRI') {
+                $primary = $key;
+            } else {
+                $updates[] = "`{$key}` = VALUES (`{$key}`)";
             }
         }
-        $query = 'UPDATE `%table` SET %updates WHERE `ident` = :ident';
+
+        $driver = $this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+        if ($driver === self::SQLITE_DRIVER_NAME) {
+            $query = 'INSERT INTO `%table` (%keys) VALUES (%inserts) ON CONFLICT(%primary) DO UPDATE SET %updates';
+        } else {
+            $query = 'INSERT INTO `%table` (%keys) VALUES (%inserts) ON DUPLICATE KEY UPDATE %updates';
+        }
+
         $query = strtr($query, [
             '%table'   => $table,
+            '%primary' => $primary,
+            '%keys'    => implode(', ', $keys),
+            '%inserts' => implode(', ', $inserts),
             '%updates' => implode(', ', $updates),
         ]);
 
         if (!$this->dbQuery($query, $binds)) {
             throw new PDOException(
-                "Could not update embed record for URL: {$item['ident']}"
+                "Could not save embed record for URL: {$item['ident']}"
             );
         }
 
@@ -434,6 +387,10 @@ class EmbedRepository implements
             );
         }
 
+        if ($result->rowCount() === 0) {
+            return null;
+        }
+
         return $result->fetch(PDO::FETCH_ASSOC);
     }
 
@@ -443,6 +400,10 @@ class EmbedRepository implements
      */
     public function load(string $ident): ?array
     {
+        if ($ident === '') {
+            return null;
+        }
+
         return $this->loadItem($ident);
     }
 
