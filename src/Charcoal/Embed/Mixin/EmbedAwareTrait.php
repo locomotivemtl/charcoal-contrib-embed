@@ -15,13 +15,6 @@ use Exception;
 trait EmbedAwareTrait
 {
     /**
-     * Whether the embed is loaded.
-     *
-     * @var boolean
-     */
-    protected $isEmbedLoaded = false;
-
-    /**
      * Format the embed link.
      *
      * @param  mixed       $value  The link to the embedable resource.
