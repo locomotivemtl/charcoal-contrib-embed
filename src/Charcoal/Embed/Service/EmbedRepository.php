@@ -71,13 +71,13 @@ class EmbedRepository implements
     /**
      * @throws UnexpectedValueException If the embed data is invalid.
      */
-    public function saveEmbedData(string $ident, ?string $format = null)
+    public function saveEmbedData(string $url, ?string $format = null)
     {
-        if ($ident === '') {
+        if ($url === '') {
             return null;
         }
 
-        $item = $this->processEmbed($ident);
+        $item = $this->processEmbed($url);
         if (empty($item['embed_data'])) {
             throw new UnexpectedValueException(sprintf(
                 "Could not save embed record for URL: {$item['ident']}",
@@ -94,15 +94,15 @@ class EmbedRepository implements
         return $item['embed_data'];
     }
 
-    public function getEmbedData(string $ident, ?string $format = null)
+    public function getEmbedData(string $url, ?string $format = null)
     {
-        if ($ident === '') {
+        if ($url === '') {
             return null;
         }
 
         $item = $this->loadItem($url);
         if (empty($item['embed_data'])) {
-            return $this->saveEmbedData($ident, $format);
+            return $this->saveEmbedData($url, $format);
         }
 
         if (is_string($item['embed_data'])) {
@@ -119,20 +119,20 @@ class EmbedRepository implements
     /**
      * Alias of {@see self::getEmbedData()}.
      */
-    public function embedData(string $ident, ?string $format = null)
+    public function embedData(string $url, ?string $format = null)
     {
-        return $this->getEmbedData($ident, $format);
+        return $this->getEmbedData($url, $format);
     }
 
     /**
-     * @param  string $ident The embed ident to process.
+     * @param  string $url The embed URL to process.
      * @return array{ident: string, embed_data: array<string, mixed>, last_update_data: string}
      */
-    private function processEmbed(string $ident): array
+    private function processEmbed(string $url): array
     {
         return [
-            'ident'            => $ident,
-            'embed_data'       => $this->resolveEmbedFormat($ident, self::FORMAT_ARRAY),
+            'ident'            => $url,
+            'embed_data'       => $this->resolveEmbedFormat($url, self::FORMAT_ARRAY),
             'last_update_date' => (new DateTimeImmutable())->format('Y-m-d H:i:s'),
         ];
     }
@@ -360,11 +360,11 @@ class EmbedRepository implements
     /**
      * Load an embed record by its URI.
      *
-     * @param  string $ident The embed URI to lookup.
+     * @param  string $url The embed URI to lookup.
      * @throws PDOException If the record can not be retrieved.
      * @return ?array<string, mixed>
      */
-    private function loadItem(string $ident): ?array
+    private function loadItem(string $url): ?array
     {
         if ($this->tableExists() === false) {
             return null;
@@ -377,13 +377,13 @@ class EmbedRepository implements
         ]);
 
         $binds = [
-            'ident' => $ident,
+            'ident' => $url,
         ];
 
         $result = $this->dbQuery($query, $binds);
         if (!$result) {
             throw new PDOException(
-                "Could not retrieve embed record for URL: {$ident}"
+                "Could not retrieve embed record for URL: {$url}"
             );
         }
 
@@ -395,16 +395,16 @@ class EmbedRepository implements
     }
 
     /**
-     * @param  string $ident The embed data ident to load.
+     * @param  string $url The embed data URL to retrieve.
      * @return ?array<string, mixed>
      */
-    public function load(string $ident): ?array
+    public function load(string $url): ?array
     {
-        if ($ident === '') {
+        if ($url === '') {
             return null;
         }
 
-        return $this->loadItem($ident);
+        return $this->loadItem($url);
     }
 
 

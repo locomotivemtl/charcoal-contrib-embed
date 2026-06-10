@@ -32,9 +32,9 @@ class UpdateEmbedDataAction extends AbstractAction
      */
     public function run(RequestInterface $request, ResponseInterface $response)
     {
-        $ident = $request->getParam('ident');
+        $url = $request->getParam('url');
 
-        if ($this->embedRepository()->saveEmbedData($ident)) {
+        if ($this->embedRepository()->saveEmbedData($url)) {
             $this->setSuccess(true);
         }
 

@@ -15,22 +15,22 @@ interface EmbedRepositoryInterface
      * Processes the URL, saves the embed data to the database,
      * and returns the data.
      *
-     * @param  string  $ident  The embed URL to save.
+     * @param  string  $url    The URL to save.
      * @param  ?string $format The format in which to return the embed.
      * @return mixed Returns the corresponding formatted embed.
      */
-    public function saveEmbedData(string $ident, ?string $format = null);
+    public function saveEmbedData(string $url, ?string $format = null);
 
     /**
      * Retrieves the embed data from the database,
      * otherwise processes the URL and persists
      * the data to the database.
      *
-     * @param  string  $ident  The embed URL to retrieve.
+     * @param  string  $url    The URL to retrieve.
      * @param  ?string $format The format in which to return the embed.
      * @return mixed Returns the corresponding formatted embed.
      */
-    public function getEmbedData(string $ident, ?string $format = null);
+    public function getEmbedData(string $url, ?string $format = null);
 
     /**
      * Retrieves the default format of embed data.
