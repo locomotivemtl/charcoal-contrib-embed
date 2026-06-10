@@ -32,7 +32,6 @@
         "psr/log": "^1.1"
     },
     "require-dev": {
-        "php-coveralls/php-coveralls": "^2.0",
         "phpunit/phpunit": "^5.7 || ^6.5",
         "squizlabs/php_codesniffer": "^3.0"
     },

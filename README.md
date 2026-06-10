@@ -3,9 +3,6 @@ Charcoal Embed
 
 [![License][badge-license]][locomotivemtl/charcoal-contrib-embed]
 [![Latest Stable Version][badge-version]][locomotivemtl/charcoal-contrib-embed]
-[![Code Quality][badge-scrutinizer]][dev-scrutinizer]
-[![Coverage Status][badge-coveralls]][dev-coveralls]
-[![Build Status][badge-travis]][dev-travis]
 
 A [Charcoal][locomotivemtl/charcoal-app] service provider embed property.
 
@@ -157,7 +154,6 @@ $ composer test
 
 ### Development Dependencies
 
--   [php-coveralls/php-coveralls][phpcov]
 -   [phpunit/phpunit][phpunit]
 -   [squizlabs/php_codesniffer][phpcs]
 
@@ -195,15 +191,8 @@ Charcoal is licensed under the MIT license. See [LICENSE](LICENSE) for details.
 [locomotivemtl/charcoal-contrib-embed]:  https://packagist.org/packages/locomotivemtl/charcoal-contrib-embed
 [locomotivemtl/charcoal-property]:       https://packagist.org/packages/locomotivemtl/charcoal-property
 
-[dev-scrutinizer]:    https://scrutinizer-ci.com/g/locomotivemtl/charcoal-contrib-embed/
-[dev-coveralls]:      https://coveralls.io/r/locomotivemtl/charcoal-contrib-embed
-[dev-travis]:         https://travis-ci.org/locomotivemtl/charcoal-contrib-embed
-
 [badge-license]:      https://img.shields.io/packagist/l/locomotivemtl/charcoal-contrib-embed.svg?style=flat-square
 [badge-version]:      https://img.shields.io/packagist/v/locomotivemtl/charcoal-contrib-embed.svg?style=flat-square
-[badge-scrutinizer]:  https://img.shields.io/scrutinizer/g/locomotivemtl/charcoal-contrib-embed.svg?style=flat-square
-[badge-coveralls]:    https://img.shields.io/coveralls/locomotivemtl/charcoal-contrib-embed.svg?style=flat-square
-[badge-travis]:       https://img.shields.io/travis/locomotivemtl/charcoal-contrib-embed.svg?style=flat-square
 
 [PSR-1]:  https://www.php-fig.org/psr/psr-1/
 [PSR-2]:  https://www.php-fig.org/psr/psr-2/
