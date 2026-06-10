@@ -1,67 +1,41 @@
-Charcoal Embed
-===============
+# Charcoal Embed
 
 [![License][badge-license]][locomotivemtl/charcoal-contrib-embed]
 [![Latest Stable Version][badge-version]][locomotivemtl/charcoal-contrib-embed]
 
-A [Charcoal][locomotivemtl/charcoal-app] service provider embed property.
-
-
-
-## Table of Contents
-
--   [Installation](#installation)
-    -   [Dependencies](#dependencies)
--   [Service Provider](#service-provider)
-    -   [Parameters](#parameters)
-    -   [Services](#services)
--   [Configuration](#configuration)
--   [Usage](#usage)
--   [Development](#development)
-    -  [API Documentation](#api-documentation)
-    -  [Development Dependencies](#development-dependencies)
-    -  [Coding Style](#coding-style)
--   [Credits](#credits)
--   [License](#license)
-
-
+A [Charcoal][locomotivemtl/charcoal-app] service provider for the [Embed][embed/embed] library.
 
 ## Installation
 
-The preferred (and only supported) method is with Composer:
+The preferred and only supported method is with Composer:
 
 ```shell
 $ composer require locomotivemtl/charcoal-contrib-embed
 ```
 
-
-
 ### Dependencies
 
 #### Required
 
--   **[PHP 5.6+](https://php.net)**: _PHP 7_ is recommended.
--   **[locomotivemtl/charcoal-property]** : ^0.8
--   **[guzzlehttp/guzzle]** : ^6.0 or ^7.0
--   **[embed/embed]** : ^3.4.10
-
+* **[PHP](https://php.net)** v5.6, v7.2 to v7.4, or v8
+* **[locomotivemtl/charcoal-app]** : v0.8+
+* **[locomotivemtl/charcoal-config]** : v0.10+
+* **[locomotivemtl/charcoal-property]** : v0.8+
+* **[guzzlehttp/guzzle]** : v6 or v7
+* **[guzzlehttp/promises]** : v1.4 or v2
+* **[embed/embed]** : v3.4
 
 ## Service Provider
 
-The following services are provided with the use of [locomotivemtl/charcoal-contrib-embed]
-
 ### Services
 
-- **embed/repository** instance of `Embed\EmbedRepository`
-    - **Charcoal\Embed\Mixin\EmbedRepositoryTrait** provided for ease of use.
+- **embed/repository** is an instance of `Charcoal\Embed\EmbedRepository` and serves as the primary API for fetching and caching embed data.
 
 ## Configuration
 
-Include the embed module in the projects's config file.
-This will provide everything needed for [locomotivemtl/charcoal-contrib-embed] to work properly.
-No need for metadata/views/action/routes path etc.
+Including the embed module in the projects's configuration file will register the service provider and the [locomotivemtl/charcoal-admin] route for remotely updating the cached embed information:
 
-```Json
+```json
 {
     "modules": {
        "charcoal/embed/embed": {}
@@ -69,7 +43,17 @@ No need for metadata/views/action/routes path etc.
 }
 ```
 
-You can provide additional configurations in the project's config file like so : 
+Otherwise, the service provider can be included directly:
+
+```json
+{
+    "service_providers": {
+        "charcoal/embed/service-provider/embed": {}
+    }
+}
+```
+
+The contrib package can be configured from the the project's configuration file (default values for illustration):
 
 ```json
 {
@@ -81,115 +65,62 @@ You can provide additional configurations in the project's config file like so :
 }
 ```
 
-This is the actual default config.
-
 ## Usage
 
-The Embed Contrib provides a custom Property type : "embed".
-When using it, the property will fetch embed data from media providers and store them in a third table.
+The contrib package provides a custom `embed` model property that upon save will fetch the URL's embed information and store a subset of that data in a custom database table.
 
 ```json
 {
     "video": {
         "type": "embed",
         "l10n": true,
-        "label": {
-            "en": "Video",
-            "fr": "Video"
-        },
-        "notes": "Full video url. ex.: https://www.youtube.com/watch?v=_VIDEO_ID"
+        "label": "Video",
+        "notes": "Absolute URL: <code>https://www.youtube.com/watch?v={video_id}</code>"
     }
 }
 ```
 
-To load the embed data from database, use **EmbedRepository** service method
+A URL's embed data can be retrieved using the `EmbedRepository`:
 
 ```php
-$this->embedRepository()
-     ->embedData('https://youtube.com/someid');
-```
-
-Dependency injection  :
-
-```php
-use EmbedRepositoryTrait;
-
-/**
- * Inject dependencies from a DI Container.
- *
- * @param  Container $container A dependencies container instance.
- * @return void
- */
-protected function setDependencies(Container $container)
-{
-    parent::setDependencies($container);
-    $this->setEmbedRepository($container['embed/repository']);
-}
+$this->embedRepository()->embedData('https://youtube.com/{video_id}');
 ```
 
 ## Development
 
-To install the development environment:
+The package can be linted with [squizlabs/php_codesniffer] and tested with [phpunit/phpunit] from the following command:
 
 ```shell
-$ composer install
+$ composer tests
 ```
-
-To run the scripts (phplint, phpcs, and phpunit):
-
-```shell
-$ composer test
-```
-
-
-
-### API Documentation
-
--   The auto-generated `phpDocumentor` API documentation is available at:  
-    [https://locomotivemtl.github.io/charcoal-contrib-embed/docs/master/](https://locomotivemtl.github.io/charcoal-contrib-embed/docs/master/)
--   The auto-generated `apigen` API documentation is available at:  
-    [https://codedoc.pub/locomotivemtl/charcoal-contrib-embed/master/](https://codedoc.pub/locomotivemtl/charcoal-contrib-embed/master/index.html)
-
-
-
-### Development Dependencies
-
--   [phpunit/phpunit][phpunit]
--   [squizlabs/php_codesniffer][phpcs]
-
-
 
 ### Coding Style
 
 The charcoal-contrib-embed module follows the Charcoal coding-style:
 
--   _[PSR-1]_
--   _[PSR-2]_
--   _[PSR-4]_, autoloading is therefore provided by _Composer_.
--   _[phpDocumentor](http://phpdoc.org/)_ comments.
--   [phpcs.xml.dist](phpcs.xml.dist) and [.editorconfig](.editorconfig) for coding standards.
-
-> Coding style validation / enforcement can be performed with `composer phpcs`. An auto-fixer is also available with `composer phpcbf`.
-
-
+* _[PSR-1]_
+* _[PSR-2]_
+* _[PSR-4]_, autoloading is therefore provided by _Composer_.
+* _[phpDocumentor](http://phpdoc.org/)_ comments.
+* [phpcs.xml.dist](phpcs.xml.dist) and [.editorconfig](.editorconfig) for coding standards.
 
 ## Credits
 
--   [Locomotive](https://locomotive.ca/)
-
-
+* [Locomotive](https://locomotive.ca/)
 
 ## License
 
 Charcoal is licensed under the MIT license. See [LICENSE](LICENSE) for details.
 
-
-
 [embed/embed]:                           https://packagist.org/packages/embed/embed
 [guzzlehttp/guzzle]:                     https://packagist.org/packages/guzzlehttp/guzzle
+[guzzlehttp/promises]:                   https://packagist.org/packages/guzzlehttp/promises
 [locomotivemtl/charcoal-app]:            https://packagist.org/packages/locomotivemtl/charcoal-app
+[locomotivemtl/charcoal-config]:         https://packagist.org/packages/locomotivemtl/charcoal-config
 [locomotivemtl/charcoal-contrib-embed]:  https://packagist.org/packages/locomotivemtl/charcoal-contrib-embed
 [locomotivemtl/charcoal-property]:       https://packagist.org/packages/locomotivemtl/charcoal-property
+[phpunit/phpunit]:                       https://packagist.org/packages/phpunit/phpunit
+[squizlabs/php_codesniffer]:             https://packagist.org/packages/squizlabs/php_codesniffer
 
 [badge-license]:      https://img.shields.io/packagist/l/locomotivemtl/charcoal-contrib-embed.svg?style=flat-square
 [badge-version]:      https://img.shields.io/packagist/v/locomotivemtl/charcoal-contrib-embed.svg?style=flat-square
