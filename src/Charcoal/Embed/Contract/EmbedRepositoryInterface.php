@@ -33,6 +33,21 @@ interface EmbedRepositoryInterface
     public function getEmbedData(string $url, ?string $format = null);
 
     /**
+     * Determines if the embed URL is valid.
+     *
+     * @param  string $url The URL to validate.
+     * @return bool TRUE if the format is supported, otherwise FALSE.
+     */
+    public function isValidUrl(string $url): bool;
+
+    /**
+     * Asserts that the embed URL is valid, otherwise throws an exception.
+     *
+     * @throws \Exception If the URL is invalid.
+     */
+    public function assertValidUrl(string $url): void;
+
+    /**
      * Retrieves the default format of embed data.
      *
      * @return self::FORMAT_*

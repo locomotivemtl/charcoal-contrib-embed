@@ -114,4 +114,26 @@ class EmbedProperty extends UrlProperty
 
         return $url;
     }
+
+    public function validationMethods()
+    {
+        $methods = parent::validationMethods();
+        $methods[] = 'url';
+        return $methods;
+    }
+
+    /**
+     * Validate that the URL is accepted by the embed repository.
+     */
+    public function validateUrl(): bool
+    {
+        $val = $this->val();
+
+        if ($this->embedRepository()->isValidUrl($val)) {
+            return true;
+        }
+
+        $this->validator()->error('Invalid URL for embedding.', 'embed');
+        return false;
+    }
 }

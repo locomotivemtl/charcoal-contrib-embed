@@ -73,9 +73,7 @@ class EmbedRepository implements
      */
     public function saveEmbedData(string $url, ?string $format = null)
     {
-        if ($url === '') {
-            return null;
-        }
+        $this->assertValidUrl($url);
 
         $item = $this->processEmbed($url);
         if (empty($item['embed_data'])) {
@@ -96,9 +94,7 @@ class EmbedRepository implements
 
     public function getEmbedData(string $url, ?string $format = null)
     {
-        if ($url === '') {
-            return null;
-        }
+        $this->assertValidUrl($url);
 
         $item = $this->loadItem($url);
         if (empty($item['embed_data'])) {
@@ -395,16 +391,52 @@ class EmbedRepository implements
     }
 
     /**
+     * Retrieves the embed data from the database.
+     *
      * @param  string $url The embed data URL to retrieve.
      * @return ?array<string, mixed>
      */
     public function load(string $url): ?array
     {
-        if ($url === '') {
-            return null;
-        }
+        $this->assertValidUrl($url);
 
         return $this->loadItem($url);
+    }
+
+    /**
+     * Retrieves the default list of acceptable URL schemes (e.g., HTTP).
+     *
+     * @return string[]
+     */
+    protected function getAllowedUrlSchemes(): array
+    {
+        return [ 'https', 'http' ];
+    }
+
+    public function isValidUrl(string $url): bool
+    {
+        if ($url === '') {
+            return false;
+        }
+
+        $scheme = parse_url($url, PHP_URL_SCHEME);
+        if (!in_array($scheme, $this->getAllowedUrlSchemes())) {
+            return false;
+        }
+
+        return (bool) filter_var($url, FILTER_VALIDATE_URL);
+    }
+
+    /**
+     * @throws \InvalidArgumentException If the URL is invalid.
+     */
+    public function assertValidUrl(string $url): void
+    {
+        if (!$this->isValidUrl($url)) {
+            throw new InvalidArgumentException(
+                "Invalid embed URL, received {$url}"
+            );
+        }
     }
 
 
