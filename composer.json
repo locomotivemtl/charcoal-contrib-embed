@@ -1,11 +1,11 @@
 {
     "type": "library",
     "name": "locomotivemtl/charcoal-contrib-embed",
-    "description": "Charcoal service provider for an embed property.",
+    "description": "Charcoal service provider for the Embed library.",
     "keywords": [
         "charcoal"
     ],
-    "homepage": "https://locomotivemtl.github.io/charcoal-contrib-embed/",
+    "homepage": "https://github.com/locomotivemtl/charcoal-contrib-embed/",
     "license": "MIT",
     "authors": [
         {
