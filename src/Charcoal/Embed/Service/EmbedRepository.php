@@ -2,7 +2,6 @@
 
 namespace Charcoal\Embed\Service;
 
-use Charcoal\Config\AbstractEntity;
 use Charcoal\Embed\Contract\EmbedRepositoryInterface;
 use Charcoal\Embed\Mixin\EmbedAwareTrait;
 use DateTime;
@@ -20,7 +19,7 @@ use UnexpectedValueException;
  *
  * Store scraped data from embed/embed in a provided database table.
  */
-class EmbedRepository extends AbstractEntity implements
+class EmbedRepository implements
     EmbedRepositoryInterface,
     LoggerAwareInterface
 {
@@ -67,10 +66,12 @@ class EmbedRepository extends AbstractEntity implements
 
         $config = $data['embed_config'];
         if ($config && is_array($config)) {
-            $this->setData($config);
+            foreach ($config as $key => $value) {
+                if (property_exists($this, $key)) {
+                    $this->{$key} = $value;
+                }
+            }
         }
-
-        return $this;
     }
 
     // Methods

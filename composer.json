@@ -25,7 +25,6 @@
         "embed/embed": "^3.4",
         "guzzlehttp/psr7": "^2.11",
         "locomotivemtl/charcoal-app": "~0.8",
-        "locomotivemtl/charcoal-config": "~0.10",
         "locomotivemtl/charcoal-property": "~0.8",
         "pimple/pimple": "^3.5",
         "psr/log": "^1.1"

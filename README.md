@@ -19,7 +19,6 @@ $ composer require locomotivemtl/charcoal-contrib-embed
 
 * **[PHP](https://php.net)** v5.6, v7.2 to v7.4, or v8
 * **[locomotivemtl/charcoal-app]** : v0.8+
-* **[locomotivemtl/charcoal-config]** : v0.10+
 * **[locomotivemtl/charcoal-property]** : v0.8+
 * **[guzzlehttp/psr7]** : v2.11
 * **[embed/embed]** : v3.4
@@ -113,7 +112,6 @@ Charcoal is licensed under the MIT license. See [LICENSE](LICENSE) for details.
 [embed/embed]:                           https://packagist.org/packages/embed/embed
 [guzzlehttp/psr7]:                       https://packagist.org/packages/guzzlehttp/psr7
 [locomotivemtl/charcoal-app]:            https://packagist.org/packages/locomotivemtl/charcoal-app
-[locomotivemtl/charcoal-config]:         https://packagist.org/packages/locomotivemtl/charcoal-config
 [locomotivemtl/charcoal-contrib-embed]:  https://packagist.org/packages/locomotivemtl/charcoal-contrib-embed
 [locomotivemtl/charcoal-property]:       https://packagist.org/packages/locomotivemtl/charcoal-property
 [phpunit/phpunit]:                       https://packagist.org/packages/phpunit/phpunit
