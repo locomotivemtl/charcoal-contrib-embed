@@ -5,18 +5,14 @@ namespace Charcoal\Embed\Service;
 use Charcoal\Config\AbstractEntity;
 use Charcoal\Embed\Contract\EmbedRepositoryInterface;
 use Charcoal\Embed\Mixin\EmbedAwareTrait;
-use DateInterval;
 use DateTime;
 use Exception;
-use GuzzleHttp\Client;
-use GuzzleHttp\Promise\Utils;
 use InvalidArgumentException;
 use PDO;
 use PDOException;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use RuntimeException;
-use Throwable;
 use UnexpectedValueException;
 
 /**
@@ -49,16 +45,6 @@ class EmbedRepository extends AbstractEntity implements
     private $pdo;
 
     /**
-     * @var mixed
-     */
-    private $baseUrl;
-
-    /**
-     * @var integer $ttl
-     */
-    private $ttl = 3600;
-
-    /**
      * The default embed data format.
      *
      * @var self::FORMAT_*
@@ -75,8 +61,8 @@ class EmbedRepository extends AbstractEntity implements
      */
     public function __construct(array $data)
     {
-        $this->pdo     = $data['pdo'];
-        $this->baseUrl = $data['base-url'];
+        $this->pdo = $data['pdo'];
+
         $this->setLogger($data['logger']);
 
         $config = $data['embed_config'];
@@ -456,49 +442,6 @@ class EmbedRepository extends AbstractEntity implements
         return $this->loadItem($ident);
     }
 
-    /**
-     * @param  array $item The embed item.
-     * @return void
-     */
-    private function validateTtl(array $item)
-    {
-        try {
-            $ttl = new DateInterval(sprintf('PT%sS', $this->ttl()));
-        } catch (Exception $e) {
-            $this->logger->error($e->getMessage());
-        }
-
-        $now        = new DateTime();
-        $lastUpdate = new DateTime($item['last_update_date']);
-
-        if ($lastUpdate->add($ttl) < $now || $item['last_update_date'] === null) {
-            // timeout is there to force the request not to wait for a response.
-            $client = new Client([
-                'base_uri'    => $this->baseUrl,
-                'timeout'     => 0.0001,
-                'synchronous' => false,
-                'verify'      => true,
-            ]);
-
-            $promises = [
-                $client->postAsync('/admin/embed/update', [
-                    'json' => [
-                        'ident' => $item['ident'],
-                    ],
-                ]),
-            ];
-
-            // prevent multiple calls to embed/update by updating update_date right now.
-            $item['last_update_date'] = (new DateTime())->format('Y-m-d H:i:s');
-            $this->updateItem($item);
-
-            try {
-                Utils::unwrap($promises);
-            } catch (Throwable $e) {
-                $this->logger->error($e->getMessage());
-            }
-        }
-    }
 
     // GETTERS & SETTERS
     // ==========================================================================
@@ -556,25 +499,6 @@ class EmbedRepository extends AbstractEntity implements
     public function hasTable()
     {
         return !empty($this->table);
-    }
-
-    /**
-     * @return integer
-     */
-    public function ttl()
-    {
-        return $this->ttl;
-    }
-
-    /**
-     * @param  integer $ttl Ttl for EmbedRepository.
-     * @return self
-     */
-    public function setTtl($ttl)
-    {
-        $this->ttl = $ttl;
-
-        return $this;
     }
 
     public function format()

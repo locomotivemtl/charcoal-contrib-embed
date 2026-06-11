@@ -21,8 +21,7 @@ $ composer require locomotivemtl/charcoal-contrib-embed
 * **[locomotivemtl/charcoal-app]** : v0.8+
 * **[locomotivemtl/charcoal-config]** : v0.10+
 * **[locomotivemtl/charcoal-property]** : v0.8+
-* **[guzzlehttp/guzzle]** : v6 or v7
-* **[guzzlehttp/promises]** : v1.4 or v2
+* **[guzzlehttp/psr7]** : v2.11
 * **[embed/embed]** : v3.4
 
 ## Service Provider
@@ -58,7 +57,6 @@ The contrib package can be configured from the the project's configuration file 
 ```json
 {
     "embed_config": {
-        "ttl": 3600,
         "format": "array",
         "table": "embed_cache"
     }
@@ -113,8 +111,7 @@ The charcoal-contrib-embed module follows the Charcoal coding-style:
 Charcoal is licensed under the MIT license. See [LICENSE](LICENSE) for details.
 
 [embed/embed]:                           https://packagist.org/packages/embed/embed
-[guzzlehttp/guzzle]:                     https://packagist.org/packages/guzzlehttp/guzzle
-[guzzlehttp/promises]:                   https://packagist.org/packages/guzzlehttp/promises
+[guzzlehttp/psr7]:                       https://packagist.org/packages/guzzlehttp/psr7
 [locomotivemtl/charcoal-app]:            https://packagist.org/packages/locomotivemtl/charcoal-app
 [locomotivemtl/charcoal-config]:         https://packagist.org/packages/locomotivemtl/charcoal-config
 [locomotivemtl/charcoal-contrib-embed]:  https://packagist.org/packages/locomotivemtl/charcoal-contrib-embed
