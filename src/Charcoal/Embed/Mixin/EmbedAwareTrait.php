@@ -128,9 +128,9 @@ trait EmbedAwareTrait
                         $image  = array_pop($images)['url'];
                     }
 
-                    $regExp = '/^.*(?:(?:youtu.be\/)|(?:v\/)|(?:\/u\/\w\/)|(?:embed\/)|(?:watch\?))\??v?=?([^\#\&\?]*).*/';
-                    if (preg_match($regExp, $url, $match) && isset($match[0]) && strlen($match[0]) === 11) {
-                        $id = $match[0];
+                    $regExp = '!^(?:https?://)?(?:.+\.)?(?:youtube(?:-nocookie)?\.com\/(?:(?:v|e(?:mbed)?)/|watch/|[^/\s]+\/.+/|.*[?&]v=)|youtu\.be/)(?<playback_id>[\w\-]{11})!i';
+                    if (preg_match($regExp, $url, $match)) {
+                        $id = $match['playback_id'];
                     }
                     break;
                 }
@@ -155,9 +155,9 @@ trait EmbedAwareTrait
                         }
                     }
 
-                    $regExp = '/^.*(?:vimeo\.com\/)(?:(?:channels\/[A-z]+\/)|(?:groups\/[A-z]+\/videos\/))?([0-9]+)/';
-                    if (preg_match($regExp, $url, $match) && isset($match[0])) {
-                        $id = $match[0];
+                    $regExp = '!^(?:https?://)?(?:.+\.)?vimeo\.com/(?:(?:progressive_redirect/playback|video)/)?(?<playback_id>\d+)!i';
+                    if (preg_match($regExp, $url, $match)) {
+                        $id = $match['playback_id'];
                     }
                     break;
                 }
