@@ -116,27 +116,31 @@ trait EmbedAwareTrait
 
         if ($format === EmbedRepositoryInterface::FORMAT_ARRAY) {
             $provider = strtolower($embed->providerName);
+            $image    = $embed->image;
+            $id       = null;
 
-            // Extract an image preview from embedable iframe.
-            // Defaults to the image extracted by the Embed object.
-            $images = $embed->images;
-            $image  = $embed->image;
-
-            if (count($images) > 1) {
-                switch ($provider) {
-                    case 'youtube': {
+            switch ($provider) {
+                case 'youtube': {
+                    if (count($embed->images) > 1) {
                         // The largest image available for YouTube will be near the end of the images array.
                         // However, the last image image is some kind of tracking pixel.
-                        $images = array_slice($images, 0, -1);
+                        $images = array_slice($embed->images, 0, -1);
                         $image  = array_pop($images)['url'];
-                        break;
                     }
 
-                    case 'vimeo': {
+                    $regExp = '/^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#\&\?]*).*/';
+                    if (preg_match($regExp, $url, $match) && isset($match[7]) && strlen($match[7]) === 11) {
+                        $id = $match[7];
+                    }
+                    break;
+                }
+
+                case 'vimeo': {
+                    if (count($embed->images) > 1) {
                         // Vimeo sticks an overlay on their best quality image. Find the width, and replace it on the
                         // smaller image (without an overlay).
-                        $smallImage = $images[0];
-                        $largeImage = array_pop($images);
+                        $smallImage = $embed->images[0];
+                        $largeImage = array_pop($embed->images);
 
                         if ($largeImage) {
                             $image = preg_replace(
@@ -149,22 +153,8 @@ trait EmbedAwareTrait
                                 $smallImage['url']
                             );
                         }
-                        break;
                     }
-                }
-            }
 
-            $id = null;
-            switch ($provider) {
-                case 'youtube': {
-                    $regExp = '/^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#\&\?]*).*/';
-                    if (preg_match($regExp, $url, $match) && isset($match[7]) && strlen($match[7]) === 11) {
-                        $id = $match[7];
-                    }
-                    break;
-                }
-
-                case 'vimeo': {
                     $regExp = '/^.*(vimeo\.com\/)((channels\/[A-z]+\/)|(groups\/[A-z]+\/videos\/))?([0-9]+)/';
                     if (preg_match($regExp, $url, $match) && isset($match[5])) {
                         $id = $match[5];
