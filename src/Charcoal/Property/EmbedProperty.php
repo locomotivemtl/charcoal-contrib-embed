@@ -50,6 +50,30 @@ class EmbedProperty extends UrlProperty
     }
 
     /**
+     * Retrieves the URL's formatted embed data.
+     *
+     * @return mixed
+     */
+    public function getEmbedData(string $url, ?string $format = null)
+    {
+        return $this->embedRepository()->getEmbedData(
+            $url,
+            $format ?? $this->getEmbedFormat()
+        );
+    }
+
+    /**
+     * Alias of {@see self::getEmbedData()} to match
+     * naming pattern from other Properties.
+     *
+     * @return array<string, mixed>|string|null
+     */
+    public function embedVal(string $url, ?string $format = null)
+    {
+        return $this->getEmbedData($url, $format);
+    }
+
+    /**
      * @param  mixed $val
      * @return string
      */

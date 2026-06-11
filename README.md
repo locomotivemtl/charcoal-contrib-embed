@@ -83,6 +83,12 @@ A URL's embed data can be retrieved using the `EmbedRepository`:
 $this->embedRepository()->getEmbedData('https://youtube.com/{video_id}');
 ```
 
+Or be retrieved via the `EmbedProperty`:
+
+```php
+$model->property('video')->getEmbedData($model['video']);
+```
+
 ## Development
 
 The package can be linted with [squizlabs/php_codesniffer] and tested with [phpunit/phpunit] from the following command:
