@@ -5,15 +5,21 @@ namespace Charcoal\Embed\Service;
 use Charcoal\Embed\Service\Resolver\ResolverInterface;
 use DOMDocument;
 use DOMElement;
-use Embed\Embed;
 use Embed\Extractor;
 use Exception;
 
 /**
- * Decorator for {@see \Embed}
+ * Serializer for {@see \Embed}.
  */
 class EmbedResolver
 {
+    private EmbedFactory $embedFactory;
+
+    public function __construct(?EmbedFactory $embedFactory = null)
+    {
+        $this->embedFactory = $embedFactory ?? new EmbedFactory();
+    }
+
     /**
      * Fetches a formatted dataset from URL's embed information.
      *
@@ -45,7 +51,7 @@ class EmbedResolver
             set_error_handler(fn(int $errno, string $errstr, string $errfile, int $errline) => $this->handleEmbedError($errno, $errstr, $errfile, $errline));
 
             /** @todo Log extraction for debugging. */
-            $info = (new Embed())->get($url);
+            $info = $this->embedFactory->createEmbed()->get($url);
 
             restore_error_handler();
 

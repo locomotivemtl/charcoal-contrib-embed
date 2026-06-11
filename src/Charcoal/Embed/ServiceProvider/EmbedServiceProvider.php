@@ -2,6 +2,7 @@
 
 namespace Charcoal\Embed\ServiceProvider;
 
+use Charcoal\Embed\Service\EmbedFactory;
 use Charcoal\Embed\Service\EmbedRepository;
 use Charcoal\Embed\Service\EmbedResolver;
 use Pimple\Container;
@@ -24,6 +25,11 @@ class EmbedServiceProvider implements ServiceProviderInterface
             $container['config']->get('embed_config') ?? [],
         );
 
-        $container['embed/resolver'] = fn(): EmbedResolver => new EmbedResolver();
+        $container['embed/resolver'] = function (Container $container): EmbedResolver {
+            $settings = $container['config']->get('embed_config.extractor_settings');
+            return new EmbedResolver(
+                $settings ? new EmbedFactory($settings) : null
+            );
+        };
     }
 }
